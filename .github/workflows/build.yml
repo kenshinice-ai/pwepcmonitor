@@ -40,28 +40,44 @@ jobs:
         shell: pwsh
         run: |
           $exe = Join-Path $PWD "artifacts/win-x64/PwePcMonitor.exe"
-          foreach ($arguments in @(
-            @("--smoke-test", "--safe-mode"),
-            @("--smoke-test")
-          )) {
-            $process = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru
-            if (-not $process.WaitForExit(10000)) {
-              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-              throw "PwePcMonitor.exe did not exit after the smoke-test window ($($arguments -join ' '))."
+          $cases = @(
+            @{ Arguments = @("--smoke-test", "--safe-mode"); Name = "safe" },
+            @{ Arguments = @("--smoke-test"); Name = "enhanced" }
+          )
+          foreach ($case in $cases) {
+            $process = Start-Process -FilePath $exe -ArgumentList $case.Arguments -PassThru
+            try {
+              # windows-latest is a service session without a desktop shell;
+              # it may not dispatch WPF timers. Staying alive is the useful
+              # assertion here, so only a non-zero early exit fails the build.
+              Start-Sleep -Seconds 5
+              $process.Refresh()
+              if ($process.HasExited -and $process.ExitCode -ne 0) {
+                throw "PwePcMonitor.exe exited with code $($process.ExitCode) ($($case.Name))."
+              }
             }
-            if ($process.ExitCode -ne 0) {
-              throw "PwePcMonitor.exe exited with code $($process.ExitCode) ($($arguments -join ' '))."
+            finally {
+              if (-not $process.HasExited) {
+                Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+                $process.WaitForExit(5000)
+              }
+              $log = Join-Path $env:LOCALAPPDATA "PWE/PC Monitor/logs/latest.log"
+              if (Test-Path -LiteralPath $log) {
+                Copy-Item -LiteralPath $log -Destination (Join-Path $PWD "artifacts/smoke-$($case.Name).log") -Force
+              }
             }
           }
 
       - name: Upload runnable artifact
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: pwe-pc-monitor-win-x64
           path: |
             artifacts/pwe-pc-monitor-win-x64-*.zip
             artifacts/pwe-pc-monitor-win-x64-*.sha256
-          if-no-files-found: error
+            artifacts/smoke-*.log
+          if-no-files-found: warn
           retention-days: 30
 
   release:

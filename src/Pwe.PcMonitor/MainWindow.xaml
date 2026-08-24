@@ -125,7 +125,7 @@
                                     <TextBlock Text="{Binding MemoryValue}" FontSize="20" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding MemoryTotal}" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Bottom" Margin="5,0,0,3" />
                                 </StackPanel>
-                                <ProgressBar Value="{Binding Snapshot.MemoryUsedPercent}" Maximum="100" Margin="0,0,0,10" />
+                                <ProgressBar Value="{Binding Snapshot.MemoryUsedPercent, Mode=OneWay}" Maximum="100" Margin="0,0,0,10" />
                                 <Grid Margin="0,3"><TextBlock Text="Available" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding MemoryAvailable}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
                                 <Grid Margin="0,3"><TextBlock Text="Pressure" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding MemoryPressure}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding MemoryHealth, Converter={StaticResource HealthBrush}}" /></Grid>
                             </StackPanel>
@@ -156,7 +156,7 @@
                                     <TextBlock Text="{Binding DiskValue}" FontSize="18" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding DiskTotal}" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Bottom" Margin="5,0,0,2" />
                                 </StackPanel>
-                                <ProgressBar Value="{Binding Snapshot.DiskUsedPercent}" Maximum="100" Margin="0,0,0,8" />
+                                <ProgressBar Value="{Binding Snapshot.DiskUsedPercent, Mode=OneWay}" Maximum="100" Margin="0,0,0,8" />
                                 <Grid Margin="0,2"><TextBlock Text="Read" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding DiskRead}" HorizontalAlignment="Right" /></Grid>
                                 <Grid Margin="0,2"><TextBlock Text="Write" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding DiskWrite}" HorizontalAlignment="Right" /></Grid>
                             </StackPanel>
@@ -173,7 +173,7 @@
                                     <TextBlock Text="{Binding BatteryValue}" FontSize="24" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding BatteryState}" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Bottom" Margin="7,0,0,4" />
                                 </StackPanel>
-                                <ProgressBar Value="{Binding Snapshot.BatteryPercent}" Maximum="100" Margin="0,9,0,0" />
+                                <ProgressBar Value="{Binding Snapshot.BatteryPercent, Mode=OneWay}" Maximum="100" Margin="0,9,0,0" />
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="2" Style="{StaticResource CardStyle}">

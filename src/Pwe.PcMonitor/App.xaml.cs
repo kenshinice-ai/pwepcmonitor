@@ -19,20 +19,64 @@ public partial class App : System.Windows.Application
     private AppSettingsService? _settingsService;
     private int _lastIconBucket = -1;
     private HealthState _lastIconHealth = (HealthState)(-1);
+    private bool _smokeTest;
+
+    public App()
+    {
+        DispatcherUnhandledException += (_, args) =>
+        {
+            AppDiagnostics.Write("DispatcherUnhandledException", args.Exception);
+            args.Handled = true;
+            ShowFailure("The dashboard encountered an unexpected error. Details were saved to the local diagnostic log.");
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is Exception exception) AppDiagnostics.Write("AppDomain.UnhandledException", exception);
+            else AppDiagnostics.Write($"AppDomain.UnhandledException: {args.ExceptionObject}");
+        };
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            AppDiagnostics.Write("TaskScheduler.UnobservedTaskException", args.Exception);
+            args.SetObserved();
+        };
+    }
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        _settingsService = new AppSettingsService();
-        _viewModel = new MonitorViewModel(_settingsService);
-        _window = new MainWindow(_viewModel);
-        CreateTrayIcon();
-        _viewModel.SnapshotUpdated += ViewModelOnSnapshotUpdated;
-        _viewModel.Start();
+        _smokeTest = e.Args.Contains("--smoke-test", StringComparer.OrdinalIgnoreCase);
+        var safeMode = e.Args.Contains("--safe-mode", StringComparer.OrdinalIgnoreCase);
+        AppDiagnostics.Clear();
+        AppDiagnostics.Write($"Starting PWE PC MONITOR {typeof(App).Assembly.GetName().Version}; safeMode={safeMode}; smokeTest={_smokeTest}");
 
-        if (!e.Args.Contains("--background", StringComparer.OrdinalIgnoreCase))
+        try
         {
-            _window.ShowNearTray();
+            _settingsService = new AppSettingsService();
+            _viewModel = new MonitorViewModel(_settingsService, enableEnhancedSensors: !safeMode);
+            _window = new MainWindow(_viewModel);
+            CreateTrayIcon();
+            _viewModel.SnapshotUpdated += ViewModelOnSnapshotUpdated;
+            _viewModel.Start();
+
+            if (_smokeTest)
+            {
+                _window.ShowNearTray();
+                Dispatcher.BeginInvoke(new Action(async () =>
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    ExitApplication();
+                }));
+            }
+            else if (!e.Args.Contains("--background", StringComparer.OrdinalIgnoreCase))
+            {
+                _window.ShowNearTray();
+            }
+        }
+        catch (Exception exception)
+        {
+            AppDiagnostics.Write("Startup failed", exception);
+            ShowFailure($"PWE PC MONITOR could not start.\n\n{exception.GetType().Name}: {exception.Message}\n\nDiagnostic log:\n{AppDiagnostics.LogPath}");
+            Shutdown(1);
         }
     }
 
@@ -117,12 +161,19 @@ public partial class App : System.Windows.Application
 
     private void ViewModelOnSnapshotUpdated(object? sender, SystemSnapshot snapshot)
     {
-        if (_trayIcon is null) return;
-        var power = (snapshot.CpuPowerWatts ?? 0) + (snapshot.GpuPowerWatts ?? 0);
-        var temperature = snapshot.CpuTemperatureMax ?? snapshot.CpuTemperature;
-        var text = $"PWE · CPU {snapshot.CpuUsage:0}% · {power:0} W · {(temperature is > 0 ? $"{temperature:0}°C" : "temp —")}";
-        _trayIcon.Text = text[..Math.Min(text.Length, 63)];
-        UpdateTrayIcon(snapshot.CpuUsage, snapshot.OverallHealth);
+        try
+        {
+            if (_trayIcon is null) return;
+            var power = (snapshot.CpuPowerWatts ?? 0) + (snapshot.GpuPowerWatts ?? 0);
+            var temperature = snapshot.CpuTemperatureMax ?? snapshot.CpuTemperature;
+            var text = $"PWE · CPU {snapshot.CpuUsage:0}% · {power:0} W · {(temperature is > 0 ? $"{temperature:0}°C" : "temp —")}";
+            _trayIcon.Text = text[..Math.Min(text.Length, 63)];
+            UpdateTrayIcon(snapshot.CpuUsage, snapshot.OverallHealth);
+        }
+        catch (Exception exception)
+        {
+            AppDiagnostics.Write("Tray update failed", exception);
+        }
     }
 
     private void UpdateTrayIcon(double cpuUsage, HealthState health)
@@ -167,11 +218,32 @@ public partial class App : System.Windows.Application
 
     private static Bitmap LoadBaseIcon()
     {
-        var uri = new Uri("pack://application:,,,/Resources/AppIcon.png", UriKind.Absolute);
-        StreamResourceInfo resource = GetResourceStream(uri) ?? throw new InvalidOperationException("App icon resource is missing.");
-        using var stream = resource.Stream;
-        using var loaded = new Bitmap(stream);
-        return new Bitmap(loaded);
+        try
+        {
+            var uri = new Uri("pack://application:,,,/Resources/AppIcon.png", UriKind.Absolute);
+            StreamResourceInfo resource = GetResourceStream(uri) ?? throw new InvalidOperationException("App icon resource is missing.");
+            using var stream = resource.Stream;
+            using var loaded = new Bitmap(stream);
+            return new Bitmap(loaded);
+        }
+        catch (Exception exception)
+        {
+            AppDiagnostics.Write("Brand icon unavailable; using the Windows fallback icon", exception);
+            return SystemIcons.Application.ToBitmap();
+        }
+    }
+
+    private static void ShowFailure(string message)
+    {
+        try
+        {
+            if (!Environment.UserInteractive) return;
+            MessageBox.Show(message, "PWE PC MONITOR", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        catch
+        {
+            // A message box is best-effort during process startup.
+        }
     }
 
     private void ToggleWindow()

@@ -6,53 +6,68 @@ namespace Pwe.PcMonitor.Services;
 public sealed class SystemSampler : IDisposable
 {
     private readonly WindowsMetricsReader _windows = new();
+    private readonly bool _enableEnhancedSensors;
     private Computer? _computer;
     private bool _hardwareAttempted;
     private string _hardwareStatus = "Basic Windows metrics";
 
+    public SystemSampler(bool enableEnhancedSensors = true)
+    {
+        _enableEnhancedSensors = enableEnhancedSensors;
+        if (!enableEnhancedSensors) _hardwareStatus = "Basic metrics only · safe mode";
+    }
+
     public SystemSnapshot Sample()
     {
-        var basic = _windows.Read();
-        var hardware = ReadHardware();
-
-        return new SystemSnapshot
+        try
         {
-            Timestamp = DateTimeOffset.Now,
-            MachineName = Environment.MachineName,
-            ProcessorName = hardware.ProcessorName ?? basic.ProcessorName,
-            GpuName = hardware.GpuName ?? "GPU",
-            SensorStatus = _hardwareStatus,
-            Uptime = basic.Uptime,
-            CpuUsage = hardware.CpuUsage ?? basic.CpuUsage,
-            CpuClockMhz = hardware.CpuClockMhz,
-            CpuTemperature = hardware.CpuTemperature,
-            CpuTemperatureMax = hardware.CpuTemperatureMax,
-            CpuPowerWatts = hardware.CpuPowerWatts,
-            GpuUsage = hardware.GpuUsage,
-            GpuClockMhz = hardware.GpuClockMhz,
-            GpuTemperature = hardware.GpuTemperature,
-            GpuPowerWatts = hardware.GpuPowerWatts,
-            MemoryTotal = basic.MemoryTotal,
-            MemoryAvailable = basic.MemoryAvailable,
-            DiskName = hardware.StorageName ?? basic.DiskName,
-            DiskTotal = basic.DiskTotal,
-            DiskFree = basic.DiskFree,
-            DiskReadBytesPerSecond = hardware.DiskReadBytesPerSecond,
-            DiskWriteBytesPerSecond = hardware.DiskWriteBytesPerSecond,
-            DiskTemperature = hardware.DiskTemperature,
-            NetworkName = basic.NetworkName,
-            IpAddress = basic.IpAddress,
-            NetworkDownBytesPerSecond = basic.NetworkDown,
-            NetworkUpBytesPerSecond = basic.NetworkUp,
-            HasBattery = basic.HasBattery,
-            BatteryPercent = basic.BatteryPercent,
-            BatteryCharging = basic.BatteryCharging,
-            BatteryOnAc = basic.BatteryOnAc,
-            Processes = basic.Processes,
-            Cores = hardware.Cores,
-            Fans = hardware.Fans,
-            Sensors = hardware.Sensors
-        };
+            var basic = _windows.Read();
+            var hardware = _enableEnhancedSensors ? ReadHardware() : new HardwareMetrics();
+
+            return new SystemSnapshot
+            {
+                Timestamp = DateTimeOffset.Now,
+                MachineName = Environment.MachineName,
+                ProcessorName = hardware.ProcessorName ?? basic.ProcessorName,
+                GpuName = hardware.GpuName ?? "GPU",
+                SensorStatus = _hardwareStatus,
+                Uptime = basic.Uptime,
+                CpuUsage = hardware.CpuUsage ?? basic.CpuUsage,
+                CpuClockMhz = hardware.CpuClockMhz,
+                CpuTemperature = hardware.CpuTemperature,
+                CpuTemperatureMax = hardware.CpuTemperatureMax,
+                CpuPowerWatts = hardware.CpuPowerWatts,
+                GpuUsage = hardware.GpuUsage,
+                GpuClockMhz = hardware.GpuClockMhz,
+                GpuTemperature = hardware.GpuTemperature,
+                GpuPowerWatts = hardware.GpuPowerWatts,
+                MemoryTotal = basic.MemoryTotal,
+                MemoryAvailable = basic.MemoryAvailable,
+                DiskName = hardware.StorageName ?? basic.DiskName,
+                DiskTotal = basic.DiskTotal,
+                DiskFree = basic.DiskFree,
+                DiskReadBytesPerSecond = hardware.DiskReadBytesPerSecond,
+                DiskWriteBytesPerSecond = hardware.DiskWriteBytesPerSecond,
+                DiskTemperature = hardware.DiskTemperature,
+                NetworkName = basic.NetworkName,
+                IpAddress = basic.IpAddress,
+                NetworkDownBytesPerSecond = basic.NetworkDown,
+                NetworkUpBytesPerSecond = basic.NetworkUp,
+                HasBattery = basic.HasBattery,
+                BatteryPercent = basic.BatteryPercent,
+                BatteryCharging = basic.BatteryCharging,
+                BatteryOnAc = basic.BatteryOnAc,
+                Processes = basic.Processes,
+                Cores = hardware.Cores,
+                Fans = hardware.Fans,
+                Sensors = hardware.Sensors
+            };
+        }
+        catch (Exception exception)
+        {
+            AppDiagnostics.Write("System sample failed", exception);
+            return new SystemSnapshot { SensorStatus = "Basic metrics temporarily unavailable" };
+        }
     }
 
     private HardwareMetrics ReadHardware()
@@ -195,6 +210,11 @@ public sealed class SystemSampler : IDisposable
     {
         if (_hardwareAttempted) return;
         _hardwareAttempted = true;
+        if (!_enableEnhancedSensors)
+        {
+            _hardwareStatus = "Basic metrics only · safe mode";
+            return;
+        }
         if (!OperatingSystem.IsWindows())
         {
             _hardwareStatus = "Hardware sensors require Windows";
@@ -203,13 +223,16 @@ public sealed class SystemSampler : IDisposable
 
         try
         {
+            var pawnIoInstalled = IsPawnIoInstalled();
             _computer = new Computer
             {
                 IsCpuEnabled = true,
                 IsGpuEnabled = true,
                 IsMemoryEnabled = true,
-                IsMotherboardEnabled = true,
-                IsControllerEnabled = true,
+                // Motherboard/controller access is the path that may require a
+                // kernel sensor driver. Keep it off unless PawnIO is present.
+                IsMotherboardEnabled = pawnIoInstalled,
+                IsControllerEnabled = pawnIoInstalled,
                 IsNetworkEnabled = true,
                 IsStorageEnabled = true,
                 IsPowerMonitorEnabled = true
@@ -222,6 +245,19 @@ public sealed class SystemSampler : IDisposable
             _computer?.Close();
             _computer = null;
             _hardwareStatus = $"Basic metrics only · {exception.GetType().Name}";
+        }
+    }
+
+    private static bool IsPawnIoInstalled()
+    {
+        try
+        {
+            return LibreHardwareMonitor.PawnIo.PawnIo.IsInstalled;
+        }
+        catch (Exception exception)
+        {
+            AppDiagnostics.Write("PawnIO availability check failed", exception);
+            return false;
         }
     }
 

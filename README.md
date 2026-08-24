@@ -33,14 +33,27 @@ PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing ma
 
 Missing or unsupported measurements are shown as `—`; the app does not invent or estimate unavailable sensor values.
 
+## Download a public Windows build
+
+Use the repository's [Releases](https://github.com/kenshinice-ai/pwepcmonitor/releases) page. Each release includes:
+
+- `pwe-pc-monitor-win-x64-<version>.zip`, a self-contained Windows x64 build;
+- `pwe-pc-monitor-win-x64-<version>.sha256`, the SHA-256 checksum.
+
+The `Actions` artifact is kept as a short-lived CI diagnostic (30 days). Releases are the stable public download path.
+
 ## Run a packaged build
 
-1. Download the `pwe-pc-monitor-win-x64` artifact from GitHub Actions.
+1. Download the versioned zip from the public Releases page.
 2. Extract the archive to a normal user-writable folder.
 3. Run `PwePcMonitor.exe`.
 4. Look for the PWE wing in the Windows notification area. Windows may place a new icon in the overflow menu until it is pinned.
 
 The published artifact is self-contained and does not require a separate .NET installation.
+
+If Windows SmartScreen shows an unknown-publisher warning, choose **More info** and verify that the file came from the PWE PC MONITOR GitHub Release. The first public builds are not Authenticode-signed yet.
+
+If a machine has a hardware-specific sensor problem, start `PwePcMonitor.exe --safe-mode` once. Safe mode keeps the dashboard and Windows-native CPU, memory, disk, network, battery and process readings while skipping enhanced sensor-driver access. The app writes startup and sampling diagnostics to `%LOCALAPPDATA%\PWE\PC Monitor\logs\latest.log`.
 
 ## Build from source
 
@@ -49,10 +62,10 @@ Install the .NET 10 SDK, then run:
 ```powershell
 dotnet restore PwePcMonitor.slnx
 dotnet build PwePcMonitor.slnx --configuration Release
-./scripts/build-windows.ps1
+./scripts/build-windows.ps1 -Runtime win-x64 -PackageVersion dev
 ```
 
-The publish output is written to `artifacts/win-x64`.
+The publish output is written to `artifacts/win-x64`; the zip and checksum are written to `artifacts/`.
 
 ## Architecture
 
@@ -82,7 +95,7 @@ CPU/GPU temperature defaults are warm at 75 °C and hot at 92 °C. Storage tempe
 
 ## Verification boundary
 
-The solution can be compiled from macOS with Windows targeting enabled, but the notification-area UI, Windows APIs, PawnIO sensor access, sleep/resume behaviour and hardware compatibility must be verified on real Windows PCs. The GitHub Actions workflow performs the authoritative Windows build.
+The solution can be compiled from macOS with Windows targeting enabled. The GitHub Actions workflow performs the authoritative Windows build and launches the published EXE in a five-second safe-mode smoke test. The notification-area UI, Windows APIs, enhanced sensor access, sleep/resume behaviour and hardware compatibility still need verification on real Windows PCs.
 
 ## Licences and brand
 

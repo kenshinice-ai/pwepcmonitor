@@ -3,6 +3,7 @@ name: Windows build
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -12,14 +13,16 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
+      # These major versions use the Node.js 24 action runtime. The older v4
+      # versions were being transparently forced from Node 20 to Node 24.
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
 
@@ -29,14 +32,70 @@ jobs:
       - name: Build
         run: dotnet build PwePcMonitor.slnx --configuration Release --no-restore
 
-      - name: Publish self-contained Windows build
+      - name: Publish and package self-contained Windows build
         shell: pwsh
-        run: ./scripts/build-windows.ps1 -Runtime win-x64
+        run: ./scripts/build-windows.ps1 -Runtime win-x64 -PackageVersion "${{ github.ref_name }}"
+
+      - name: Smoke test the published EXE
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD "artifacts/win-x64/PwePcMonitor.exe"
+          foreach ($arguments in @(
+            @("--smoke-test", "--safe-mode"),
+            @("--smoke-test")
+          )) {
+            $process = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru
+            if (-not $process.WaitForExit(15000)) {
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+              throw "PwePcMonitor.exe did not exit after the smoke-test window ($($arguments -join ' '))."
+            }
+            if ($process.ExitCode -ne 0) {
+              throw "PwePcMonitor.exe exited with code $($process.ExitCode) ($($arguments -join ' '))."
+            }
+          }
 
       - name: Upload runnable artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pwe-pc-monitor-win-x64
-          path: artifacts/win-x64/**
+          path: |
+            artifacts/pwe-pc-monitor-win-x64-*.zip
+            artifacts/pwe-pc-monitor-win-x64-*.sha256
           if-no-files-found: error
           retention-days: 30
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packaged assets
+        uses: actions/download-artifact@v7
+        with:
+          name: pwe-pc-monitor-win-x64
+          path: release-assets
+
+      - name: Publish public GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $zip = Get-ChildItem -LiteralPath release-assets -Filter "*.zip" | Select-Object -First 1
+          $checksum = Get-ChildItem -LiteralPath release-assets -Filter "*.sha256" | Select-Object -First 1
+          if ($null -eq $zip -or $null -eq $checksum) {
+            throw "The packaged zip and SHA-256 file were not downloaded."
+          }
+          $notes = Join-Path $PWD "release-notes.md"
+          @"
+          PWE PC MONITOR $env:GITHUB_REF_NAME
+
+          Self-contained Windows x64 build. Extract the zip and run PwePcMonitor.exe.
+          No separate .NET installation is required. This release is read-only and does not contain fan control.
+
+          Verify the download with the accompanying SHA-256 file.
+          "@ | Set-Content -LiteralPath $notes -Encoding utf8
+          gh release create $env:GITHUB_REF_NAME $zip.FullName $checksum.FullName --repo $env:GITHUB_REPOSITORY --verify-tag --title "PWE PC MONITOR $env:GITHUB_REF_NAME" --notes-file $notes

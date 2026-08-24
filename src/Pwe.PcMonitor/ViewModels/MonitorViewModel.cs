@@ -10,7 +10,7 @@ namespace Pwe.PcMonitor.ViewModels;
 public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
 {
     private const int HistoryLength = 89;
-    private readonly SystemSampler _sampler = new();
+    private readonly SystemSampler _sampler;
     private readonly AppSettingsService _settingsService;
     private readonly Queue<double> _cpuHistory = new();
     private readonly Queue<double> _gpuHistory = new();
@@ -20,11 +20,12 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     private AppSettings _settings;
     private bool _isSampling;
 
-    public MonitorViewModel(AppSettingsService settingsService)
+    public MonitorViewModel(AppSettingsService settingsService, bool enableEnhancedSensors = true)
     {
         _settingsService = settingsService;
         _settings = settingsService.Load();
         ThemeManager.Apply(_settings.Theme);
+        _sampler = new SystemSampler(enableEnhancedSensors);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -142,9 +143,10 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
                 {
                     break;
                 }
-                catch
+                catch (Exception exception)
                 {
                     // The next cycle retries; the last good snapshot remains visible.
+                    AppDiagnostics.Write("Sampling loop failed", exception);
                 }
                 finally
                 {

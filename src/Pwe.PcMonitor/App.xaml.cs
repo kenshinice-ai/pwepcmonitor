@@ -15,6 +15,7 @@ public partial class App : System.Windows.Application
     private Icon? _currentTrayIcon;
     private Bitmap? _baseIcon;
     private MainWindow? _window;
+    private FloatingWindow? _floatingWindow;
     private MonitorViewModel? _viewModel;
     private AppSettingsService? _settingsService;
     private int _lastIconBucket = -1;
@@ -54,9 +55,12 @@ public partial class App : System.Windows.Application
             _settingsService = new AppSettingsService();
             _viewModel = new MonitorViewModel(_settingsService, enableEnhancedSensors: !safeMode);
             _window = new MainWindow(_viewModel);
+            _floatingWindow = new FloatingWindow(_viewModel);
             CreateTrayIcon();
             _viewModel.SnapshotUpdated += ViewModelOnSnapshotUpdated;
             _viewModel.Start();
+
+            if (_viewModel.ShowFloatingWidget) _floatingWindow.ShowWidget();
 
             if (_smokeTest)
             {
@@ -105,7 +109,11 @@ public partial class App : System.Windows.Application
 
     private Forms.ContextMenuStrip BuildTrayMenu()
     {
-        var menu = new Forms.ContextMenuStrip { ShowImageMargin = false };
+        var menu = new Forms.ContextMenuStrip
+        {
+            ShowImageMargin = false,
+            Renderer = new Forms.ToolStripProfessionalRenderer(new PweColorTable())
+        };
         menu.Items.Add("Open Dashboard", null, (_, _) => ShowWindow());
         menu.Items.Add(new Forms.ToolStripSeparator());
 
@@ -130,6 +138,13 @@ public partial class App : System.Windows.Application
         var sensors = new Forms.ToolStripMenuItem("Show All Sensors");
         sensors.Click += (_, _) => { _viewModel?.ToggleSensors(); RefreshTrayChecks(menu); };
         menu.Items.Add(sensors);
+
+        var floating = new Forms.ToolStripMenuItem("Show Floating Widget");
+        floating.Click += (_, _) => ToggleFloatingWindow();
+        menu.Items.Add(floating);
+
+        menu.Items.Add("Restart with sensor access", null, (_, _) => RestartAsAdministrator());
+        menu.Items.Add("Open sensor support guide", null, (_, _) => OpenSensorGuide());
 
         var startup = new Forms.ToolStripMenuItem("Launch at Login");
         startup.Click += (_, _) =>
@@ -162,6 +177,7 @@ public partial class App : System.Windows.Application
                     child.Checked = child.Tag is ThemePreference value && value == _viewModel.Theme;
             }
             else if (item.Text == "Show All Sensors") item.Checked = _viewModel.ShowSensors;
+            else if (item.Text == "Show Floating Widget") item.Checked = _viewModel.ShowFloatingWidget;
             else if (item.Text == "Launch at Login") item.Checked = StartupService.IsEnabled;
         }
     }
@@ -263,10 +279,37 @@ public partial class App : System.Windows.Application
         _window?.ShowNearTray();
     }
 
+    public void ToggleFloatingWindow()
+    {
+        if (_viewModel is null || _floatingWindow is null) return;
+        _viewModel.ToggleFloatingWidget();
+        if (_viewModel.ShowFloatingWidget) _floatingWindow.ShowWidget();
+        else _floatingWindow.Hide();
+    }
+
+    public void RestartAsAdministrator()
+    {
+        if (SensorAccessService.IsElevated)
+        {
+            ShowFailure("PWE PC MONITOR is already running with administrator access.");
+            return;
+        }
+
+        if (SensorAccessService.TryRestartElevated()) ExitApplication();
+        else ShowFailure("Administrator restart was cancelled or unavailable.");
+    }
+
+    public void OpenSensorGuide()
+    {
+        if (!SensorAccessService.OpenGuide()) ShowFailure("The sensor support guide could not be opened.");
+    }
+
     public void ExitApplication()
     {
         _window?.AllowClose();
         _window?.Close();
+        _floatingWindow?.AllowClose();
+        _floatingWindow?.Close();
         _viewModel?.Dispose();
         if (_trayIcon is not null) _trayIcon.Visible = false;
         _trayIcon?.Dispose();
@@ -278,4 +321,20 @@ public partial class App : System.Windows.Application
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool DestroyIcon(IntPtr handle);
+
+    private sealed class PweColorTable : Forms.ProfessionalColorTable
+    {
+        private static Color Background => ThemeManager.IsDark ? Color.FromArgb(21, 34, 57) : Color.White;
+        private static Color Hover => ThemeManager.IsDark ? Color.FromArgb(44, 58, 81) : Color.FromArgb(237, 234, 228);
+        private static Color Border => ThemeManager.IsDark ? Color.FromArgb(38, 52, 75) : Color.FromArgb(227, 223, 216);
+
+        public override Color ToolStripDropDownBackground => Background;
+        public override Color MenuItemSelected => Hover;
+        public override Color MenuItemSelectedGradientBegin => Hover;
+        public override Color MenuItemSelectedGradientEnd => Hover;
+        public override Color MenuBorder => Border;
+        public override Color MenuItemBorder => Border;
+        public override Color SeparatorDark => Border;
+        public override Color SeparatorLight => Border;
+    }
 }

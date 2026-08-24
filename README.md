@@ -14,6 +14,7 @@ PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing ma
 
 - Windows notification-area icon with CPU activity rule and health colour.
 - Left-click dashboard; right-click settings and quit menu.
+- Optional always-on-top floating widget with CPU, memory, temperature and fan status.
 - CPU usage, frequency, temperature, package power and per-core bars when available.
 - GPU usage, frequency, temperature and power when available.
 - Memory, system drive capacity, network throughput/address, battery and top processes.
@@ -24,6 +25,7 @@ PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing ma
 - Optional full sensor list.
 - Launch-at-login setting stored for the current Windows user.
 - Graceful fallback to basic Windows metrics if enhanced hardware sensors are unavailable.
+- Motherboard temperature and fan channels are attempted even when PawnIO is not installed; unsupported or protected channels remain visibly marked instead of being treated as zero.
 
 ## Requirements
 
@@ -54,6 +56,8 @@ The published artifact is self-contained and does not require a separate .NET in
 If Windows SmartScreen shows an unknown-publisher warning, choose **More info** and verify that the file came from the PWE PC MONITOR GitHub Release. The first public builds are not Authenticode-signed yet.
 
 If a machine has a hardware-specific sensor problem, start `PwePcMonitor.exe --safe-mode` once. Safe mode keeps the dashboard and Windows-native CPU, memory, disk, network, battery and process readings while skipping enhanced sensor-driver access. The app writes startup and sampling diagnostics to `%LOCALAPPDATA%\PWE\PC Monitor\logs\latest.log`.
+
+Motherboard temperature chips and fan RPM channels may require the official PawnIO support used by LibreHardwareMonitor or an elevated process. The Settings menu provides **Run as admin** and an official sensor-support guide; PWE does not silently install a kernel driver. Some laptops and proprietary controllers do not expose readable or controllable channels at all.
 
 ## Build from source
 

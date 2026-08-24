@@ -115,6 +115,7 @@
                                 <Grid Margin="0,3"><TextBlock Text="CPU avg" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding CpuAverageTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
                                 <Grid Margin="0,3"><TextBlock Text="CPU max" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding CpuMaxTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding CpuHealth, Converter={StaticResource HealthBrush}}" /></Grid>
                                 <Grid Margin="0,3"><TextBlock Text="GPU" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding GpuTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding GpuHealth, Converter={StaticResource HealthBrush}}" /></Grid>
+                                <Grid Margin="0,3"><TextBlock Text="CHIPSET" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding MotherboardTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
                                 <Grid Margin="0,3"><TextBlock Text="SSD" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding DiskTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding DiskHealth, Converter={StaticResource HealthBrush}}" /></Grid>
                             </StackPanel>
                         </Border>
@@ -139,10 +140,16 @@
                                 <TextBlock Text="FANS" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
                                 <TextBlock Text="{Binding FanSummary}" Style="{StaticResource MutedTextStyle}"
                                            Visibility="{Binding HasFans, Converter={StaticResource BoolVisibility}, ConverterParameter=Invert}" />
+                                <TextBlock Text="{Binding SensorAccessHint}" Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,5,0,4"
+                                           Visibility="{Binding NeedsSensorAccess, Converter={StaticResource BoolVisibility}}" />
+                                <WrapPanel Visibility="{Binding NeedsSensorAccess, Converter={StaticResource BoolVisibility}}">
+                                    <Button Content="Run as admin" Style="{StaticResource SmallButtonStyle}" Padding="7,4" Margin="0,0,5,0" Click="RestartElevated_Click" />
+                                    <Button Content="Sensor guide" Style="{StaticResource SmallButtonStyle}" Padding="7,4" Click="SensorGuide_Click" />
+                                </WrapPanel>
                                 <ItemsControl ItemsSource="{Binding Fans}" MaxHeight="125">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Grid Margin="0,3"><TextBlock Text="{Binding Name}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis" MaxWidth="105" /><TextBlock HorizontalAlignment="Right" FontWeight="SemiBold"><Run Text="{Binding Rpm, StringFormat={}{0:0}}" /><Run Text=" rpm" /></TextBlock></Grid>
+                                            <Grid Margin="0,3"><TextBlock Text="{Binding Name}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis" MaxWidth="105" /><TextBlock Text="{Binding DisplayValue}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>

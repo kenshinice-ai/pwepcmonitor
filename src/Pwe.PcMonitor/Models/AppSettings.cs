@@ -12,4 +12,5 @@ public sealed record AppSettings
     public double RefreshSeconds { get; init; } = 2;
     public ThemePreference Theme { get; init; } = ThemePreference.System;
     public bool ShowAllSensors { get; init; }
+    public bool ShowFloatingWidget { get; init; }
 }

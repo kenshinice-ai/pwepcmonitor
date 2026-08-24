@@ -1,6 +1,13 @@
 namespace Pwe.PcMonitor.Models;
 
-public sealed record FanReading(string Name, double Rpm, double? Percent = null);
+public sealed record FanReading(string Name, double? Rpm, double? Percent = null)
+{
+    public string DisplayValue => Rpm is > 0
+        ? $"{Rpm:0} rpm"
+        : Percent is double percent
+            ? $"{percent:0}%"
+            : "—";
+}
 
 public sealed record ProcessReading(string Name, double CpuPercent, long MemoryBytes);
 
@@ -43,6 +50,8 @@ public sealed record SystemSnapshot
     public double? DiskReadBytesPerSecond { get; init; }
     public double? DiskWriteBytesPerSecond { get; init; }
     public double? DiskTemperature { get; init; }
+    public double? MotherboardTemperature { get; init; }
+    public double? MotherboardTemperatureMax { get; init; }
 
     public string NetworkName { get; init; } = "Network";
     public string IpAddress { get; init; } = "—";
@@ -69,9 +78,11 @@ public sealed record SystemSnapshot
     public HealthState DiskHealth => HealthRules.Max(
         HealthRules.Capacity(DiskUsedPercent),
         HealthRules.Temperature(DiskTemperature, storage: true));
+    public HealthState MotherboardHealth => HealthRules.Temperature(MotherboardTemperatureMax ?? MotherboardTemperature);
     public HealthState OverallHealth => HealthRules.Max(
         HealthRules.Temperature(CpuTemperatureMax ?? CpuTemperature),
         HealthRules.Temperature(GpuTemperature),
+        MotherboardHealth,
         MemoryHealth,
         DiskHealth);
 }

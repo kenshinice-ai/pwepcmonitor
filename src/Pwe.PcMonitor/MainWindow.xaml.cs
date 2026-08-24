@@ -73,7 +73,10 @@ public partial class MainWindow : Window
         var menu = new ContextMenu();
         menu.Items.Add(CreateThemeMenu());
         menu.Items.Add(CreateCheckedItem("Show All Sensors", _viewModel.ShowSensors, () => _viewModel.ToggleSensors()));
+        menu.Items.Add(CreateCheckedItem("Show Floating Widget", _viewModel.ShowFloatingWidget, () => ((App)Application.Current).ToggleFloatingWindow()));
         menu.Items.Add(CreateCheckedItem("Launch at Login", StartupService.IsEnabled, () => StartupService.SetEnabled(!StartupService.IsEnabled)));
+        menu.Items.Add(CreateActionItem("Restart with sensor access", ((App)Application.Current).RestartAsAdministrator));
+        menu.Items.Add(CreateActionItem("Open sensor support guide", ((App)Application.Current).OpenSensorGuide));
         menu.Items.Add(new Separator());
         var hide = new System.Windows.Controls.MenuItem { Header = "Hide Dashboard" };
         hide.Click += (_, _) => Hide();
@@ -103,4 +106,17 @@ public partial class MainWindow : Window
         item.Click += (_, _) => action();
         return item;
     }
+
+    private static System.Windows.Controls.MenuItem CreateActionItem(string title, Action action)
+    {
+        var item = new System.Windows.Controls.MenuItem { Header = title };
+        item.Click += (_, _) => action();
+        return item;
+    }
+
+    private void RestartElevated_Click(object sender, RoutedEventArgs e) =>
+        ((App)Application.Current).RestartAsAdministrator();
+
+    private void SensorGuide_Click(object sender, RoutedEventArgs e) =>
+        ((App)Application.Current).OpenSensorGuide();
 }

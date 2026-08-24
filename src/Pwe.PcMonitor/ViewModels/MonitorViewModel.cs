@@ -67,6 +67,7 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     public string CpuMaxTemperature => FormatTemperatureDetailed(Snapshot.CpuTemperatureMax);
     public string GpuTemperature => FormatTemperatureDetailed(Snapshot.GpuTemperature);
     public string DiskTemperature => FormatTemperatureDetailed(Snapshot.DiskTemperature);
+    public string MotherboardTemperature => FormatTemperatureDetailed(Snapshot.MotherboardTemperature);
     public string MemoryValue => $"{FormatBytes(Snapshot.MemoryUsed)}";
     public string MemoryTotal => $"of {FormatBytes(Snapshot.MemoryTotal)}";
     public string MemoryAvailable => FormatBytes(Snapshot.MemoryAvailable);
@@ -80,6 +81,9 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     public string BatteryValue => $"{Snapshot.BatteryPercent}%";
     public string BatteryState => Snapshot.BatteryCharging ? "charging" : Snapshot.BatteryOnAc ? "on power" : "on battery";
     public string FanSummary => Fans.Count == 0 ? "No readable fan sensors" : $"{Fans.Count} readable channel{(Fans.Count == 1 ? "" : "s")}";
+    public string SensorAccessHint => NeedsSensorAccess
+        ? "Motherboard temperatures/fans may need PawnIO or administrator access"
+        : string.Empty;
     public string OverallLabel => Snapshot.OverallHealth switch { HealthState.Hot => "HOT", HealthState.Warm => "WARM", _ => "CALM" };
     public HealthState OverallHealth => Snapshot.OverallHealth;
     public HealthState CpuHealth => Snapshot.CpuHealth;
@@ -89,7 +93,10 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     public HealthState DiskHealth => Snapshot.DiskHealth;
     public bool HasBattery => Snapshot.HasBattery;
     public bool HasFans => Fans.Count > 0;
+    public bool NeedsSensorAccess => Snapshot.SensorStatus.Contains("PawnIO", StringComparison.OrdinalIgnoreCase) ||
+                                     Snapshot.SensorStatus.Contains("administrator", StringComparison.OrdinalIgnoreCase);
     public bool ShowSensors => _settings.ShowAllSensors;
+    public bool ShowFloatingWidget => _settings.ShowFloatingWidget;
     public double RefreshSeconds => _settings.RefreshSeconds;
     public ThemePreference Theme => _settings.Theme;
 
@@ -125,6 +132,14 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         _settingsService.Save(_settings);
         OnPropertyChanged(nameof(Settings));
         OnPropertyChanged(nameof(ShowSensors));
+    }
+
+    public void ToggleFloatingWidget()
+    {
+        _settings = _settings with { ShowFloatingWidget = !_settings.ShowFloatingWidget };
+        _settingsService.Save(_settings);
+        OnPropertyChanged(nameof(Settings));
+        OnPropertyChanged(nameof(ShowFloatingWidget));
     }
 
     private async Task SamplingLoopAsync(CancellationToken cancellationToken)
@@ -192,7 +207,8 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
             nameof(GpuTemperature), nameof(DiskTemperature), nameof(MemoryValue), nameof(MemoryTotal), nameof(MemoryAvailable),
             nameof(MemoryPressure), nameof(DiskValue), nameof(DiskTotal), nameof(DiskRead), nameof(DiskWrite), nameof(NetworkDown),
             nameof(NetworkUp), nameof(BatteryValue), nameof(BatteryState), nameof(OverallLabel), nameof(OverallHealth), nameof(CpuHealth),
-            nameof(GpuHealth), nameof(PowerHealth), nameof(MemoryHealth), nameof(DiskHealth), nameof(HasBattery)
+            nameof(GpuHealth), nameof(PowerHealth), nameof(MemoryHealth), nameof(DiskHealth), nameof(HasBattery),
+            nameof(MotherboardTemperature), nameof(SensorAccessHint), nameof(NeedsSensorAccess)
         }) OnPropertyChanged(name);
     }
 

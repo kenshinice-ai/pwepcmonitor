@@ -1,0 +1,63 @@
+<Window x:Class="Pwe.PcMonitor.FloatingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PWE FLOAT"
+        Width="278" Height="146" MinWidth="240" MinHeight="120"
+        WindowStyle="None" ResizeMode="NoResize"
+        AllowsTransparency="True" Background="Transparent"
+        ShowInTaskbar="False" Topmost="True" ShowActivated="False"
+        Closing="Window_Closing">
+    <Border Background="{DynamicResource BackgroundBrush}"
+            BorderBrush="{DynamicResource StrokeBrush}"
+            BorderThickness="1" CornerRadius="12" Padding="13">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <DockPanel MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <Button Content="×" DockPanel.Dock="Right" Style="{StaticResource SmallButtonStyle}"
+                        Padding="6,1" FontSize="16" Click="CloseWidget_Click" />
+                <StackPanel>
+                    <TextBlock Text="PWE FLOAT" Style="{StaticResource SectionLabelStyle}" />
+                    <TextBlock Text="{Binding Snapshot.MachineName}" Style="{StaticResource MutedTextStyle}"
+                               TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </DockPanel>
+
+            <Grid Grid.Row="1" Margin="0,10,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="CPU" Style="{StaticResource SectionLabelStyle}" />
+                    <TextBlock Text="{Binding CpuValue}" FontSize="21" FontWeight="SemiBold"
+                               Foreground="{Binding CpuHealth, Converter={StaticResource HealthBrush}}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="MEM" Style="{StaticResource SectionLabelStyle}" />
+                    <TextBlock Text="{Binding Snapshot.MemoryUsedPercent, StringFormat={}{0:0}%}"
+                               FontSize="21" FontWeight="SemiBold" />
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="TEMP" Style="{StaticResource SectionLabelStyle}" />
+                    <TextBlock Text="{Binding CpuAverageTemperature}" FontSize="21" FontWeight="SemiBold"
+                               Foreground="{Binding CpuHealth, Converter={StaticResource HealthBrush}}" />
+                </StackPanel>
+                <StackPanel Grid.Column="3">
+                    <TextBlock Text="FAN" Style="{StaticResource SectionLabelStyle}" />
+                    <TextBlock Text="{Binding FanSummary}" FontSize="11" FontWeight="SemiBold"
+                               TextWrapping="Wrap" MaxWidth="60" Margin="0,5,0,0" />
+                </StackPanel>
+            </Grid>
+
+            <TextBlock Grid.Row="2" Text="{Binding SensorStatus}" Style="{StaticResource MutedTextStyle}"
+                       TextTrimming="CharacterEllipsis" />
+        </Grid>
+    </Border>
+</Window>

@@ -9,6 +9,9 @@ public sealed class SystemSampler : IDisposable
     private readonly bool _enableEnhancedSensors;
     private Computer? _computer;
     private bool _hardwareAttempted;
+    private bool _hardwareInventoryLogged;
+    private bool _pawnIoInstalled;
+    private bool _isElevated;
     private string _hardwareStatus = "Basic Windows metrics";
 
     public SystemSampler(bool enableEnhancedSensors = true)
@@ -49,6 +52,8 @@ public sealed class SystemSampler : IDisposable
                 DiskReadBytesPerSecond = hardware.DiskReadBytesPerSecond,
                 DiskWriteBytesPerSecond = hardware.DiskWriteBytesPerSecond,
                 DiskTemperature = hardware.DiskTemperature,
+                MotherboardTemperature = hardware.MotherboardTemperature,
+                MotherboardTemperatureMax = hardware.MotherboardTemperatureMax,
                 NetworkName = basic.NetworkName,
                 IpAddress = basic.IpAddress,
                 NetworkDownBytesPerSecond = basic.NetworkDown,
@@ -79,8 +84,14 @@ public sealed class SystemSampler : IDisposable
         {
             _computer.Accept(new UpdateVisitor());
             var allHardware = Flatten(_computer.Hardware).ToArray();
+            if (!_hardwareInventoryLogged)
+            {
+                var inventory = string.Join(" | ", allHardware.Select(item => $"{item.HardwareType}:{item.Name}[{item.Sensors.Count()}]").Take(64));
+                AppDiagnostics.Write($"Hardware inventory: {inventory}");
+                _hardwareInventoryLogged = true;
+            }
             var sensors = new List<SensorReading>();
-            var fans = new List<FanReading>();
+            var fans = new Dictionary<string, FanReading>(StringComparer.OrdinalIgnoreCase);
             var cores = new List<CoreReading>();
             var cpuTemps = new List<double>();
             var cpuClocks = new List<double>();
@@ -90,6 +101,7 @@ public sealed class SystemSampler : IDisposable
             var gpuLoads = new List<double>();
             var gpuClocks = new List<double>();
             var diskTemps = new List<double>();
+            var motherboardTemps = new List<double>();
             double? cpuTotal = null;
             double? diskRead = null;
             double? diskWrite = null;
@@ -103,6 +115,7 @@ public sealed class SystemSampler : IDisposable
                 var isCpu = hardwareType.Equals("Cpu", StringComparison.OrdinalIgnoreCase);
                 var isGpu = hardwareType.StartsWith("Gpu", StringComparison.OrdinalIgnoreCase);
                 var isStorage = hardwareType.Equals("Storage", StringComparison.OrdinalIgnoreCase);
+                var isMotherboard = IsMotherboardHardware(hardwareType);
                 if (isCpu) processorName ??= hardware.Name;
                 if (isGpu) gpuName ??= hardware.Name;
                 if (isStorage) storageName ??= hardware.Name;
@@ -118,7 +131,13 @@ public sealed class SystemSampler : IDisposable
 
                     if (type == "Fan")
                     {
-                        fans.Add(new FanReading($"{hardware.Name} · {name}", value));
+                        var fanName = $"{hardware.Name} · {name}";
+                        fans[fanName] = new FanReading(fanName, value);
+                    }
+                    else if ((type == "Control" || type == "Level") && IsFanControlName(name))
+                    {
+                        var fanName = $"{hardware.Name} · {name}";
+                        if (!fans.ContainsKey(fanName)) fans[fanName] = new FanReading(fanName, null, value);
                     }
                     else if (isCpu && type == "Temperature")
                     {
@@ -163,6 +182,10 @@ public sealed class SystemSampler : IDisposable
                     {
                         diskTemps.Add(value);
                     }
+                    else if (isMotherboard && type == "Temperature")
+                    {
+                        motherboardTemps.Add(value);
+                    }
                     else if (isStorage && type == "Throughput")
                     {
                         if (name.Contains("Read", StringComparison.OrdinalIgnoreCase)) diskRead = value;
@@ -176,7 +199,7 @@ public sealed class SystemSampler : IDisposable
                 cores.Add(new CoreReading("CPU", cpuTotal.Value, Average(cpuClocks)));
             }
 
-            _hardwareStatus = $"Enhanced sensors · {sensors.Count} readings";
+            _hardwareStatus = BuildHardwareStatus(sensors.Count, motherboardTemps.Count > 0, fans.Values.Any(item => item.Rpm is > 0));
             return new HardwareMetrics
             {
                 ProcessorName = processorName,
@@ -192,16 +215,23 @@ public sealed class SystemSampler : IDisposable
                 GpuTemperature = Max(gpuTemps),
                 GpuPowerWatts = SumOrNull(gpuPowers),
                 DiskTemperature = Max(diskTemps),
+                MotherboardTemperature = Average(motherboardTemps),
+                MotherboardTemperatureMax = Max(motherboardTemps),
                 DiskReadBytesPerSecond = diskRead,
                 DiskWriteBytesPerSecond = diskWrite,
                 Cores = cores.Take(32).ToArray(),
-                Fans = fans.OrderBy(item => item.Name).ToArray(),
+                Fans = fans.Values.OrderBy(item => item.Name).ToArray(),
                 Sensors = sensors.OrderBy(item => item.Group).ThenBy(item => item.Type).ThenBy(item => item.Name).ToArray()
             };
         }
         catch (Exception exception)
         {
-            _hardwareStatus = $"Enhanced sensors unavailable · {exception.GetType().Name}";
+            var prerequisite = !_pawnIoInstalled
+                ? " · PawnIO may be required"
+                : !_isElevated
+                    ? " · try administrator access"
+                    : string.Empty;
+            _hardwareStatus = $"Enhanced sensors unavailable · {exception.GetType().Name}{prerequisite}";
             return new HardwareMetrics();
         }
     }
@@ -223,28 +253,36 @@ public sealed class SystemSampler : IDisposable
 
         try
         {
-            var pawnIoInstalled = IsPawnIoInstalled();
+            _pawnIoInstalled = IsPawnIoInstalled();
+            _isElevated = SensorAccessService.IsElevated;
             _computer = new Computer
             {
                 IsCpuEnabled = true,
                 IsGpuEnabled = true,
                 IsMemoryEnabled = true,
-                // Motherboard/controller access is the path that may require a
-                // kernel sensor driver. Keep it off unless PawnIO is present.
-                IsMotherboardEnabled = pawnIoInstalled,
-                IsControllerEnabled = pawnIoInstalled,
+                // Keep motherboard enumeration on even before PawnIO is installed.
+                // Some boards expose read-only values without the driver; when
+                // they do not, the UI can now explain the exact prerequisite.
+                IsMotherboardEnabled = true,
+                IsControllerEnabled = _pawnIoInstalled,
                 IsNetworkEnabled = true,
                 IsStorageEnabled = true,
                 IsPowerMonitorEnabled = true
             };
             _computer.Open();
-            _hardwareStatus = "Enhanced sensors starting";
+            AppDiagnostics.Write($"Hardware access: PawnIO={_pawnIoInstalled}; elevated={_isElevated}; motherboard=true; controller={_pawnIoInstalled}");
+            _hardwareStatus = _pawnIoInstalled ? "Enhanced sensors starting" : "Enhanced sensors starting · PawnIO not installed";
         }
         catch (Exception exception)
         {
             _computer?.Close();
             _computer = null;
-            _hardwareStatus = $"Basic metrics only · {exception.GetType().Name}";
+            var prerequisite = !_pawnIoInstalled
+                ? " · PawnIO may be required"
+                : !_isElevated
+                    ? " · try administrator access"
+                    : string.Empty;
+            _hardwareStatus = $"Basic metrics only · {exception.GetType().Name}{prerequisite}";
         }
     }
 
@@ -260,6 +298,30 @@ public sealed class SystemSampler : IDisposable
             return false;
         }
     }
+
+    private string BuildHardwareStatus(int sensorCount, bool hasMotherboardTemperature, bool hasFanRpm)
+    {
+        var status = $"Enhanced sensors · {sensorCount} readings";
+        if (!hasMotherboardTemperature || !hasFanRpm)
+        {
+            status += !_pawnIoInstalled
+                ? " · motherboard/fans may need PawnIO"
+                : !_isElevated
+                    ? " · run as administrator for more board sensors"
+                    : " · some board channels may be unsupported";
+        }
+        return status;
+    }
+
+    private static bool IsMotherboardHardware(string hardwareType) =>
+        hardwareType.Equals("Motherboard", StringComparison.OrdinalIgnoreCase) ||
+        hardwareType.Equals("SuperIO", StringComparison.OrdinalIgnoreCase) ||
+        hardwareType.Equals("EmbeddedController", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsFanControlName(string name) =>
+        name.Contains("Fan", StringComparison.OrdinalIgnoreCase) ||
+        name.Contains("Pump", StringComparison.OrdinalIgnoreCase) ||
+        name.Contains("Cool", StringComparison.OrdinalIgnoreCase);
 
     private static IEnumerable<IHardware> Flatten(IEnumerable<IHardware> roots)
     {
@@ -348,6 +410,8 @@ public sealed class SystemSampler : IDisposable
         public double? GpuTemperature { get; init; }
         public double? GpuPowerWatts { get; init; }
         public double? DiskTemperature { get; init; }
+        public double? MotherboardTemperature { get; init; }
+        public double? MotherboardTemperatureMax { get; init; }
         public double? DiskReadBytesPerSecond { get; init; }
         public double? DiskWriteBytesPerSecond { get; init; }
         public IReadOnlyList<CoreReading> Cores { get; init; } = [];

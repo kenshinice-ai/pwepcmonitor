@@ -45,7 +45,7 @@ jobs:
             @("--smoke-test")
           )) {
             $process = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru
-            if (-not $process.WaitForExit(15000)) {
+            if (-not $process.WaitForExit(10000)) {
               Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
               throw "PwePcMonitor.exe did not exit after the smoke-test window ($($arguments -join ' '))."
             }

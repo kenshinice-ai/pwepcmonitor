@@ -60,12 +60,19 @@ public partial class App : System.Windows.Application
 
             if (_smokeTest)
             {
-                _window.ShowNearTray();
-                Dispatcher.BeginInvoke(new Action(async () =>
+                // Hosted Windows runners do not provide an interactive desktop.
+                // Constructing the complete app is still useful, but calling
+                // Window.Show there can wait on the unavailable shell.
+                var timer = new System.Windows.Threading.DispatcherTimer
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    Interval = TimeSpan.FromSeconds(3)
+                };
+                timer.Tick += (_, _) =>
+                {
+                    timer.Stop();
                     ExitApplication();
-                }));
+                };
+                timer.Start();
             }
             else if (!e.Args.Contains("--background", StringComparer.OrdinalIgnoreCase))
             {

@@ -114,4 +114,10 @@ jobs:
 
           Verify the download with the accompanying SHA-256 file.
           "@ | Set-Content -LiteralPath $notes -Encoding utf8
-          gh release create $env:GITHUB_REF_NAME $zip.FullName $checksum.FullName --repo $env:GITHUB_REPOSITORY --verify-tag --title "PWE PC MONITOR $env:GITHUB_REF_NAME" --notes-file $notes
+          gh release view $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:GITHUB_REF_NAME $zip.FullName $checksum.FullName --repo $env:GITHUB_REPOSITORY --clobber
+          }
+          else {
+            gh release create $env:GITHUB_REF_NAME $zip.FullName $checksum.FullName --repo $env:GITHUB_REPOSITORY --verify-tag --title "PWE PC MONITOR $env:GITHUB_REF_NAME" --notes-file $notes
+          }

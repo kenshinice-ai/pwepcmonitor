@@ -1,0 +1,42 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore PwePcMonitor.slnx --runtime win-x64
+
+      - name: Build
+        run: dotnet build PwePcMonitor.slnx --configuration Release --no-restore
+
+      - name: Publish self-contained Windows build
+        shell: pwsh
+        run: ./scripts/build-windows.ps1 -Runtime win-x64
+
+      - name: Upload runnable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pwe-pc-monitor-win-x64
+          path: artifacts/win-x64/**
+          if-no-files-found: error
+          retention-days: 30

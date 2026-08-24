@@ -1,0 +1,256 @@
+<Window x:Class="Pwe.PcMonitor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:Pwe.PcMonitor.Controls"
+        Title="PWE PC MONITOR"
+        Width="420" Height="860" MinWidth="390" MinHeight="620"
+        WindowStyle="None" ResizeMode="CanResizeWithGrip"
+        AllowsTransparency="True" Background="Transparent"
+        ShowInTaskbar="False" Topmost="True"
+        Icon="Resources/AppIcon.png"
+        Closing="Window_Closing" PreviewKeyDown="Window_PreviewKeyDown">
+    <Border Background="{DynamicResource BackgroundBrush}"
+            BorderBrush="{DynamicResource StrokeBrush}"
+            BorderThickness="1" CornerRadius="13" ClipToBounds="True">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="21,18,21,16" MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Image Source="Resources/AppIcon.png" Width="42" Height="42" Margin="0,0,13,0" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="PWE PC MONITOR" FontFamily="{StaticResource BrandFont}" FontSize="19" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding MachineSummary}" Style="{StaticResource MutedTextStyle}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <Border Grid.Column="2" Padding="11,6" CornerRadius="16"
+                        Background="{Binding OverallHealth, Converter={StaticResource HealthBadgeBrush}}"
+                        VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="7" Height="7" Margin="0,0,7,0"
+                                 Fill="{Binding OverallHealth, Converter={StaticResource HealthBrush}}" />
+                        <TextBlock Text="{Binding OverallLabel}" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{Binding OverallHealth, Converter={StaticResource HealthBrush}}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="21,0,21,21">
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,13">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="1" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="1" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,13,0">
+                                <TextBlock Text="CPU" Style="{StaticResource SectionLabelStyle}" />
+                                <TextBlock Text="{Binding CpuValue}" Style="{StaticResource HeroValueStyle}"
+                                           Foreground="{Binding CpuHealth, Converter={StaticResource HealthBrush}}" />
+                                <TextBlock Text="{Binding CpuSub}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" />
+                                <controls:Sparkline Values="{Binding CpuHistory}" Ceiling="100" Height="25" Margin="0,10,0,0"
+                                                    Stroke="{Binding CpuHealth, Converter={StaticResource HealthBrush}}" />
+                            </StackPanel>
+                            <Border Grid.Column="1" Background="{DynamicResource StrokeBrush}" />
+                            <StackPanel Grid.Column="2" Margin="13,0">
+                                <TextBlock Text="GPU" Style="{StaticResource SectionLabelStyle}" />
+                                <TextBlock Text="{Binding GpuValue}" Style="{StaticResource HeroValueStyle}"
+                                           Foreground="{Binding GpuHealth, Converter={StaticResource HealthBrush}}" />
+                                <TextBlock Text="{Binding GpuSub}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" />
+                                <controls:Sparkline Values="{Binding GpuHistory}" Ceiling="100" Height="25" Margin="0,10,0,0"
+                                                    Stroke="{Binding GpuHealth, Converter={StaticResource HealthBrush}}" />
+                            </StackPanel>
+                            <Border Grid.Column="3" Background="{DynamicResource StrokeBrush}" />
+                            <StackPanel Grid.Column="4" Margin="13,0,0,0">
+                                <TextBlock Text="POWER" Style="{StaticResource SectionLabelStyle}" />
+                                <TextBlock Text="{Binding PowerValue}" Style="{StaticResource HeroValueStyle}"
+                                           Foreground="{Binding PowerHealth, Converter={StaticResource HealthBrush}}" />
+                                <TextBlock Text="{Binding PowerSub}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" />
+                                <controls:Sparkline Values="{Binding PowerHistory}" Ceiling="300" Height="25" Margin="0,10,0,0"
+                                                    Stroke="{Binding PowerHealth, Converter={StaticResource HealthBrush}}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,13">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,12">
+                                <TextBlock Text="PROCESSOR" Style="{StaticResource SectionLabelStyle}" />
+                                <TextBlock Text="{Binding Snapshot.ProcessorName}" Style="{StaticResource MutedTextStyle}"
+                                           DockPanel.Dock="Right" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" MaxWidth="245" />
+                            </DockPanel>
+                            <ItemsControl ItemsSource="{Binding Cores}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Width="18" Height="45" Margin="0,0,5,0" ToolTip="{Binding Name}">
+                                            <Border Background="{DynamicResource RailBrush}" CornerRadius="3" />
+                                            <Border Background="{DynamicResource AccentBrush}" CornerRadius="3"
+                                                    Height="{Binding BarHeight}" VerticalAlignment="Bottom" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="{Binding SensorStatus}" Style="{StaticResource MutedTextStyle}" Margin="0,10,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Margin="0,0,0,13">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="13" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="THERMALS" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,10" />
+                                <Grid Margin="0,3"><TextBlock Text="CPU avg" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding CpuAverageTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
+                                <Grid Margin="0,3"><TextBlock Text="CPU max" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding CpuMaxTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding CpuHealth, Converter={StaticResource HealthBrush}}" /></Grid>
+                                <Grid Margin="0,3"><TextBlock Text="GPU" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding GpuTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding GpuHealth, Converter={StaticResource HealthBrush}}" /></Grid>
+                                <Grid Margin="0,3"><TextBlock Text="SSD" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding DiskTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding DiskHealth, Converter={StaticResource HealthBrush}}" /></Grid>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="MEMORY" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,10" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="{Binding MemoryValue}" FontSize="20" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding MemoryTotal}" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Bottom" Margin="5,0,0,3" />
+                                </StackPanel>
+                                <ProgressBar Value="{Binding Snapshot.MemoryUsedPercent}" Maximum="100" Margin="0,0,0,10" />
+                                <Grid Margin="0,3"><TextBlock Text="Available" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding MemoryAvailable}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
+                                <Grid Margin="0,3"><TextBlock Text="Pressure" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding MemoryPressure}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding MemoryHealth, Converter={StaticResource HealthBrush}}" /></Grid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,13">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="13" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="FANS" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
+                                <TextBlock Text="{Binding FanSummary}" Style="{StaticResource MutedTextStyle}"
+                                           Visibility="{Binding HasFans, Converter={StaticResource BoolVisibility}, ConverterParameter=Invert}" />
+                                <ItemsControl ItemsSource="{Binding Fans}" MaxHeight="125">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,3"><TextBlock Text="{Binding Name}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis" MaxWidth="105" /><TextBlock HorizontalAlignment="Right" FontWeight="SemiBold"><Run Text="{Binding Rpm, StringFormat={}{0:0}}" /><Run Text=" rpm" /></TextBlock></Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="STORAGE" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
+                                <TextBlock Text="{Binding Snapshot.DiskName}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" Margin="0,0,0,5" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="{Binding DiskValue}" FontSize="18" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding DiskTotal}" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Bottom" Margin="5,0,0,2" />
+                                </StackPanel>
+                                <ProgressBar Value="{Binding Snapshot.DiskUsedPercent}" Maximum="100" Margin="0,0,0,8" />
+                                <Grid Margin="0,2"><TextBlock Text="Read" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding DiskRead}" HorizontalAlignment="Right" /></Grid>
+                                <Grid Margin="0,2"><TextBlock Text="Write" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding DiskWrite}" HorizontalAlignment="Right" /></Grid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,13">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="13" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource CardStyle}"
+                                Visibility="{Binding HasBattery, Converter={StaticResource BoolVisibility}}">
+                            <StackPanel>
+                                <TextBlock Text="BATTERY" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding BatteryValue}" FontSize="24" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding BatteryState}" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Bottom" Margin="7,0,0,4" />
+                                </StackPanel>
+                                <ProgressBar Value="{Binding Snapshot.BatteryPercent}" Maximum="100" Margin="0,9,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="NETWORK" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
+                                <TextBlock Text="{Binding Snapshot.NetworkName}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" Margin="0,0,0,5" />
+                                <Grid Margin="0,3"><TextBlock Text="Down" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding NetworkDown}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
+                                <Grid Margin="0,3"><TextBlock Text="Up" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding NetworkUp}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
+                                <Grid Margin="0,3"><TextBlock Text="Address" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding Snapshot.IpAddress}" HorizontalAlignment="Right" /></Grid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,13">
+                        <StackPanel>
+                            <TextBlock Text="TOP PROCESSES" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
+                            <ItemsControl ItemsSource="{Binding Processes}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,3">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="75" /><ColumnDefinition Width="55" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" Text="{Binding MemoryBytes, Converter={StaticResource BytesConverter}}" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Right" />
+                                            <TextBlock Grid.Column="2" Text="{Binding CpuPercent, StringFormat={}{0:0.0}%}" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,13"
+                            Visibility="{Binding ShowSensors, Converter={StaticResource BoolVisibility}}">
+                        <StackPanel>
+                            <TextBlock Text="ALL SENSORS" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
+                            <ItemsControl ItemsSource="{Binding Sensors}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,3">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="95" /></Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Group}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold">
+                                                <TextBlock.Text>
+                                                    <MultiBinding Converter="{StaticResource SensorValueConverter}">
+                                                        <Binding Path="Value" /><Binding Path="Unit" />
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="A PARADISE PRODUCTION · 天域文创出品" FontFamily="{StaticResource BrandFont}"
+                               Foreground="{DynamicResource MutedBrush}" FontSize="11"
+                               HorizontalAlignment="Center" Margin="0,8,0,4" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Grid.Row="2" BorderBrush="{DynamicResource StrokeBrush}" BorderThickness="0,1,0,0" Padding="21,9">
+                <Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="EVERY" Style="{StaticResource SectionLabelStyle}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <RadioButton x:Name="Refresh1" Content="1s" GroupName="Refresh" Tag="1" Style="{StaticResource RefreshRadioStyle}" Click="Refresh_Click" />
+                        <RadioButton x:Name="Refresh2" Content="2s" GroupName="Refresh" Tag="2" Style="{StaticResource RefreshRadioStyle}" Click="Refresh_Click" />
+                        <RadioButton x:Name="Refresh3" Content="3s" GroupName="Refresh" Tag="3" Style="{StaticResource RefreshRadioStyle}" Click="Refresh_Click" />
+                        <RadioButton x:Name="Refresh5" Content="5s" GroupName="Refresh" Tag="5" Style="{StaticResource RefreshRadioStyle}" Click="Refresh_Click" />
+                    </StackPanel>
+                    <Button x:Name="SettingsButton" Content="☷" Style="{StaticResource SmallButtonStyle}" HorizontalAlignment="Right"
+                            FontSize="18" ToolTip="Settings" Click="SettingsButton_Click" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

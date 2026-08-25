@@ -12,6 +12,7 @@ public partial class MainWindow : Window
 {
     private readonly MonitorViewModel _viewModel;
     private bool _allowClose;
+    private ContextMenu? _settingsMenu;
 
     public MainWindow(MonitorViewModel viewModel)
     {
@@ -46,6 +47,17 @@ public partial class MainWindow : Window
         if (e.Key == Key.Escape) Hide();
     }
 
+    private void Window_Deactivated(object? sender, EventArgs e)
+    {
+        // The dashboard is a tray popover: clicking the desktop or another
+        // window should dismiss it. The settings menu owns focus briefly, so
+        // defer the check and keep the popover alive until that menu closes.
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
+        {
+            if (IsVisible && !IsActive && _settingsMenu?.IsOpen != true) Hide();
+        }));
+    }
+
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ButtonState == MouseButtonState.Pressed) DragMove();
@@ -72,6 +84,7 @@ public partial class MainWindow : Window
     {
         var menu = new ContextMenu();
         menu.Items.Add(CreateThemeMenu());
+        menu.Items.Add(CreateDiagnosticsMenu());
         menu.Items.Add(CreateCheckedItem("Show All Sensors", _viewModel.ShowSensors, () => _viewModel.ToggleSensors()));
         menu.Items.Add(CreateCheckedItem("Show Floating Widget", _viewModel.ShowFloatingWidget, () => ((App)Application.Current).ToggleFloatingWindow()));
         menu.Items.Add(CreateCheckedItem("Launch at Login", StartupService.IsEnabled, () => StartupService.SetEnabled(!StartupService.IsEnabled)));
@@ -87,7 +100,39 @@ public partial class MainWindow : Window
         quit.Click += (_, _) => ((App)System.Windows.Application.Current).ExitApplication();
         menu.Items.Add(quit);
         menu.PlacementTarget = SettingsButton;
+        _settingsMenu = menu;
+        menu.Closed += (_, _) =>
+        {
+            _settingsMenu = null;
+            if (IsVisible && !IsActive) Hide();
+        };
         menu.IsOpen = true;
+    }
+
+    private System.Windows.Controls.MenuItem CreateDiagnosticsMenu()
+    {
+        var root = new System.Windows.Controls.MenuItem { Header = "Sensor diagnostics" };
+        var diagnostics = _viewModel.SensorDiagnostics;
+        if (diagnostics.Count == 0)
+        {
+            root.Items.Add(new System.Windows.Controls.MenuItem
+            {
+                Header = "All displayed channels are readable",
+                IsEnabled = false
+            });
+            return root;
+        }
+
+        foreach (var diagnostic in diagnostics)
+        {
+            root.Items.Add(new System.Windows.Controls.MenuItem
+            {
+                Header = diagnostic,
+                IsEnabled = false,
+                ToolTip = diagnostic
+            });
+        }
+        return root;
     }
 
     private System.Windows.Controls.MenuItem CreateThemeMenu()

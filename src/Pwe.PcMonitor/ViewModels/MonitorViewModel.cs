@@ -104,7 +104,28 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     public HealthState MemoryHealth => Snapshot.MemoryHealth;
     public HealthState DiskHealth => Snapshot.DiskHealth;
     public bool HasBattery => Snapshot.HasBattery;
-    public bool HasFans => Fans.Count > 0;
+    public bool HasCpuSub => HasPositive(Snapshot.CpuClockMhz) || HasPositive(Snapshot.CpuTemperatureMax ?? Snapshot.CpuTemperature);
+    public bool HasCpuAverageTemperature => HasPositive(Snapshot.CpuTemperature);
+    public bool HasCpuMaxTemperature => HasPositive(Snapshot.CpuTemperatureMax);
+    public bool HasGpuUsage => Snapshot.GpuUsage is not null;
+    public bool HasGpuSub => HasPositive(Snapshot.GpuClockMhz) || HasPositive(Snapshot.GpuTemperature);
+    public bool HasGpuTemperature => HasPositive(Snapshot.GpuTemperature);
+    public bool HasGpuData => HasGpuUsage || HasGpuSub;
+    public bool HasPowerData => CombinedPower is not null;
+    public bool HasPowerSub => Snapshot.CpuPowerWatts is not null || Snapshot.GpuPowerWatts is not null;
+    public bool HasThermalReadings => HasCpuAverageTemperature || HasCpuMaxTemperature || HasGpuTemperature || HasPositive(Snapshot.DiskTemperature) || HasPositive(Snapshot.MotherboardTemperature);
+    public bool HasMotherboardTemperature => HasPositive(Snapshot.MotherboardTemperature);
+    public bool HasDiskTemperature => HasPositive(Snapshot.DiskTemperature);
+    public bool HasMemoryData => Snapshot.MemoryTotal > 0;
+    public bool HasDiskData => Snapshot.DiskTotal > 0;
+    public bool HasDiskRead => Snapshot.DiskReadBytesPerSecond is not null;
+    public bool HasDiskWrite => Snapshot.DiskWriteBytesPerSecond is not null;
+    public bool HasNetworkData => !Snapshot.NetworkName.Equals("Network", StringComparison.OrdinalIgnoreCase) || HasNetworkAddress || Snapshot.NetworkDownBytesPerSecond > 0 || Snapshot.NetworkUpBytesPerSecond > 0;
+    public bool HasNetworkAddress => !string.IsNullOrWhiteSpace(Snapshot.IpAddress) && !Snapshot.IpAddress.Equals("—", StringComparison.Ordinal);
+    public bool HasProcesses => Processes.Count > 0;
+    public bool HasFans => Fans.Any(item => item.Rpm is >= 0 || item.Percent is >= 0);
+    public IReadOnlyList<string> SensorDiagnostics => BuildSensorDiagnostics();
+    public bool HasSensorDiagnostics => SensorDiagnostics.Count > 0;
     public bool NeedsSensorAccess => Snapshot.SensorStatus.Contains("PawnIO", StringComparison.OrdinalIgnoreCase) ||
                                      Snapshot.SensorStatus.Contains("administrator", StringComparison.OrdinalIgnoreCase) ||
                                      Snapshot.TemperatureStatus.Contains("PawnIO", StringComparison.OrdinalIgnoreCase);
@@ -203,7 +224,7 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     {
         Snapshot = next;
         Replace(Cores, next.Cores);
-        Replace(Fans, next.Fans);
+        Replace(Fans, next.Fans.Where(item => item.Rpm is >= 0 || item.Percent is >= 0));
         Replace(Processes, next.Processes);
         Replace(Sensors, _settings.ShowAllSensors ? next.Sensors : next.Sensors.Take(24));
         Push(_cpuHistory, next.CpuUsage);
@@ -216,6 +237,8 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(FanSummary));
         OnPropertyChanged(nameof(FanValue));
         OnPropertyChanged(nameof(FanSub));
+        OnPropertyChanged(nameof(SensorDiagnostics));
+        OnPropertyChanged(nameof(HasSensorDiagnostics));
         SnapshotUpdated?.Invoke(this, next);
     }
 
@@ -230,9 +253,53 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
             nameof(NetworkUp), nameof(BatteryValue), nameof(BatteryState), nameof(OverallLabel), nameof(OverallHealth), nameof(CpuHealth),
             nameof(GpuHealth), nameof(PowerHealth), nameof(MemoryHealth), nameof(DiskHealth), nameof(HasBattery),
             nameof(MotherboardTemperature), nameof(TemperatureStatus), nameof(SensorAccessHint), nameof(NeedsSensorAccess),
-            nameof(FanValue), nameof(FanSub)
+            nameof(FanValue), nameof(FanSub), nameof(HasCpuSub), nameof(HasCpuAverageTemperature), nameof(HasCpuMaxTemperature),
+            nameof(HasGpuUsage), nameof(HasGpuSub), nameof(HasGpuTemperature), nameof(HasGpuData), nameof(HasPowerData), nameof(HasPowerSub),
+            nameof(HasThermalReadings), nameof(HasMotherboardTemperature), nameof(HasDiskTemperature), nameof(HasMemoryData), nameof(HasDiskData),
+            nameof(HasDiskRead), nameof(HasDiskWrite), nameof(HasNetworkData), nameof(HasNetworkAddress), nameof(HasProcesses), nameof(SensorDiagnostics), nameof(HasSensorDiagnostics)
         }) OnPropertyChanged(name);
     }
+
+    private IReadOnlyList<string> BuildSensorDiagnostics()
+    {
+        var diagnostics = new List<string>();
+        AddDiagnostic(diagnostics, Snapshot.SensorStatus, "Basic Windows metrics");
+
+        if (!HasCpuAverageTemperature && !HasCpuMaxTemperature)
+            diagnostics.Add("CPU temperature: no readable channel");
+        if (!HasGpuTemperature && (HasGpuData || !Snapshot.GpuName.Equals("GPU", StringComparison.OrdinalIgnoreCase)))
+            diagnostics.Add($"GPU temperature: no readable channel ({Snapshot.GpuTemperatureSource})");
+        if (!HasMotherboardTemperature)
+            diagnostics.Add("Motherboard temperature: no readable channel");
+        if (!HasFans)
+            diagnostics.Add("Fan RPM: no readable channel");
+        if (HasDiskData && !HasDiskTemperature)
+            diagnostics.Add("SSD temperature: no readable channel");
+        if (HasDiskData && !HasDiskRead)
+            diagnostics.Add("Disk read rate: not exposed");
+        if (HasDiskData && !HasDiskWrite)
+            diagnostics.Add("Disk write rate: not exposed");
+        if (!HasMemoryData)
+            diagnostics.Add("Memory: unavailable");
+        if (!HasNetworkData)
+            diagnostics.Add("Network adapter: unavailable");
+        if (!HasBattery)
+            diagnostics.Add("Battery: no battery detected");
+        AddDiagnostic(diagnostics, Snapshot.TemperatureStatus, "");
+
+        return diagnostics
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static void AddDiagnostic(List<string> diagnostics, string? value, string ignoredValue)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && !value.Equals(ignoredValue, StringComparison.OrdinalIgnoreCase))
+            diagnostics.Add(value);
+    }
+
+    private static bool HasPositive(double? value) => value is > 0;
 
     private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> items)
     {

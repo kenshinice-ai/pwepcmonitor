@@ -135,6 +135,9 @@ public partial class App : System.Windows.Application
         }
         menu.Items.Add(theme);
 
+        var diagnostics = new Forms.ToolStripMenuItem("Sensor diagnostics");
+        menu.Items.Add(diagnostics);
+
         var sensors = new Forms.ToolStripMenuItem("Show All Sensors");
         sensors.Click += (_, _) => { _viewModel?.ToggleSensors(); RefreshTrayChecks(menu); };
         menu.Items.Add(sensors);
@@ -178,6 +181,20 @@ public partial class App : System.Windows.Application
                 foreach (Forms.ToolStripMenuItem child in item.DropDownItems)
                     child.Checked = child.Tag is ThemePreference value && value == _viewModel.Theme;
             }
+            else if (item.Text == "Sensor diagnostics")
+            {
+                item.DropDownItems.Clear();
+                var diagnostics = _viewModel.SensorDiagnostics;
+                if (diagnostics.Count == 0)
+                {
+                    item.DropDownItems.Add(new Forms.ToolStripMenuItem("All displayed channels are readable") { Enabled = false });
+                }
+                else
+                {
+                    foreach (var diagnostic in diagnostics)
+                        item.DropDownItems.Add(new Forms.ToolStripMenuItem(diagnostic) { Enabled = false });
+                }
+            }
             else if (item.Text == "Show All Sensors") item.Checked = _viewModel.ShowSensors;
             else if (item.Text == "Show Floating Widget") item.Checked = _viewModel.ShowFloatingWidget;
             else if (item.Text == "Launch at Login") item.Checked = StartupService.IsEnabled;
@@ -189,9 +206,14 @@ public partial class App : System.Windows.Application
         try
         {
             if (_trayIcon is null) return;
-            var power = (snapshot.CpuPowerWatts ?? 0) + (snapshot.GpuPowerWatts ?? 0);
+            double? power = snapshot.CpuPowerWatts is null && snapshot.GpuPowerWatts is null
+                ? null
+                : (snapshot.CpuPowerWatts ?? 0) + (snapshot.GpuPowerWatts ?? 0);
             var temperature = snapshot.CpuTemperatureMax ?? snapshot.CpuTemperature;
-            var text = $"PWE · CPU {snapshot.CpuUsage:0}% · {power:0} W · {(temperature is > 0 ? $"{temperature:0}°C" : "temp —")}";
+            var parts = new List<string> { $"PWE · CPU {snapshot.CpuUsage:0}%" };
+            if (power is double watts) parts.Add($"{watts:0} W");
+            if (temperature is > 0) parts.Add($"{temperature:0}°C");
+            var text = string.Join(" · ", parts);
             _trayIcon.Text = text[..Math.Min(text.Length, 63)];
             UpdateTrayIcon(snapshot.CpuUsage, snapshot.OverallHealth);
         }

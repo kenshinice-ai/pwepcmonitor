@@ -8,7 +8,7 @@
         AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" Topmost="True"
         Icon="Resources/AppIcon.png"
-        Closing="Window_Closing" PreviewKeyDown="Window_PreviewKeyDown">
+        Closing="Window_Closing" Deactivated="Window_Deactivated" PreviewKeyDown="Window_PreviewKeyDown">
     <Border Background="{DynamicResource BackgroundBrush}"
             BorderBrush="{DynamicResource StrokeBrush}"
             BorderThickness="1" CornerRadius="13" ClipToBounds="True">
@@ -57,27 +57,38 @@
                                 <TextBlock Text="CPU" Style="{StaticResource SectionLabelStyle}" />
                                 <TextBlock Text="{Binding CpuValue}" Style="{StaticResource HeroValueStyle}"
                                            Foreground="{Binding CpuHealth, Converter={StaticResource HealthBrush}}" />
-                                <TextBlock Text="{Binding CpuSub}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding CpuSub}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis"
+                                           Visibility="{Binding HasCpuSub, Converter={StaticResource BoolVisibility}}" />
                                 <controls:Sparkline Values="{Binding CpuHistory}" Ceiling="100" Height="25" Margin="0,10,0,0"
                                                     Stroke="{Binding CpuHealth, Converter={StaticResource HealthBrush}}" />
                             </StackPanel>
-                            <Border Grid.Column="1" Background="{DynamicResource StrokeBrush}" />
-                            <StackPanel Grid.Column="2" Margin="13,0">
+                            <Border Grid.Column="1" Background="{DynamicResource StrokeBrush}"
+                                    Visibility="{Binding HasGpuData, Converter={StaticResource BoolVisibility}}" />
+                            <StackPanel Grid.Column="2" Margin="13,0"
+                                        Visibility="{Binding HasGpuData, Converter={StaticResource BoolVisibility}}">
                                 <TextBlock Text="GPU" Style="{StaticResource SectionLabelStyle}" />
                                 <TextBlock Text="{Binding GpuValue}" Style="{StaticResource HeroValueStyle}"
-                                           Foreground="{Binding GpuHealth, Converter={StaticResource HealthBrush}}" />
-                                <TextBlock Text="{Binding GpuSub}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" />
+                                           Foreground="{Binding GpuHealth, Converter={StaticResource HealthBrush}}"
+                                           Visibility="{Binding HasGpuUsage, Converter={StaticResource BoolVisibility}}" />
+                                <TextBlock Text="{Binding GpuSub}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis"
+                                           Visibility="{Binding HasGpuSub, Converter={StaticResource BoolVisibility}}" />
                                 <controls:Sparkline Values="{Binding GpuHistory}" Ceiling="100" Height="25" Margin="0,10,0,0"
-                                                    Stroke="{Binding GpuHealth, Converter={StaticResource HealthBrush}}" />
+                                                    Stroke="{Binding GpuHealth, Converter={StaticResource HealthBrush}}"
+                                                    Visibility="{Binding HasGpuUsage, Converter={StaticResource BoolVisibility}}" />
                             </StackPanel>
-                            <Border Grid.Column="3" Background="{DynamicResource StrokeBrush}" />
-                            <StackPanel Grid.Column="4" Margin="13,0,0,0">
+                            <Border Grid.Column="3" Background="{DynamicResource StrokeBrush}"
+                                    Visibility="{Binding HasPowerData, Converter={StaticResource BoolVisibility}}" />
+                            <StackPanel Grid.Column="4" Margin="13,0,0,0"
+                                        Visibility="{Binding HasPowerData, Converter={StaticResource BoolVisibility}}">
                                 <TextBlock Text="POWER" Style="{StaticResource SectionLabelStyle}" />
                                 <TextBlock Text="{Binding PowerValue}" Style="{StaticResource HeroValueStyle}"
-                                           Foreground="{Binding PowerHealth, Converter={StaticResource HealthBrush}}" />
-                                <TextBlock Text="{Binding PowerSub}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" />
+                                           Foreground="{Binding PowerHealth, Converter={StaticResource HealthBrush}}"
+                                           Visibility="{Binding HasPowerData, Converter={StaticResource BoolVisibility}}" />
+                                <TextBlock Text="{Binding PowerSub}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis"
+                                           Visibility="{Binding HasPowerSub, Converter={StaticResource BoolVisibility}}" />
                                 <controls:Sparkline Values="{Binding PowerHistory}" Ceiling="300" Height="25" Margin="0,10,0,0"
-                                                    Stroke="{Binding PowerHealth, Converter={StaticResource HealthBrush}}" />
+                                                    Stroke="{Binding PowerHealth, Converter={StaticResource HealthBrush}}"
+                                                    Visibility="{Binding HasPowerData, Converter={StaticResource BoolVisibility}}" />
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -103,26 +114,24 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Text="{Binding SensorStatus}" Style="{StaticResource MutedTextStyle}" Margin="0,10,0,0" />
                         </StackPanel>
                     </Border>
 
                     <Grid Margin="0,0,0,13">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="13" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+                        <Border Grid.Column="0" Style="{StaticResource CardStyle}"
+                                Visibility="{Binding HasThermalReadings, Converter={StaticResource BoolVisibility}}">
                             <StackPanel>
                                 <TextBlock Text="THERMALS" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,10" />
-                                <Grid Margin="0,3"><TextBlock Text="CPU avg" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding CpuAverageTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
-                                <Grid Margin="0,3"><TextBlock Text="CPU max" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding CpuMaxTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding CpuHealth, Converter={StaticResource HealthBrush}}" /></Grid>
-                                <Grid Margin="0,3"><TextBlock Text="GPU" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding GpuTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding GpuHealth, Converter={StaticResource HealthBrush}}" /></Grid>
-                                <TextBlock Text="{Binding GpuTemperatureSource}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"
-                                           Visibility="{Binding HasGpuTemperatureSource, Converter={StaticResource BoolVisibility}}" />
-                                <Grid Margin="0,3"><TextBlock Text="CHIPSET" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding MotherboardTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
-                                <Grid Margin="0,3"><TextBlock Text="SSD" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding DiskTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding DiskHealth, Converter={StaticResource HealthBrush}}" /></Grid>
-                                <TextBlock Text="{Binding TemperatureStatus}" Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                <Grid Margin="0,3" Visibility="{Binding HasCpuAverageTemperature, Converter={StaticResource BoolVisibility}}"><TextBlock Text="CPU avg" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding CpuAverageTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
+                                <Grid Margin="0,3" Visibility="{Binding HasCpuMaxTemperature, Converter={StaticResource BoolVisibility}}"><TextBlock Text="CPU max" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding CpuMaxTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding CpuHealth, Converter={StaticResource HealthBrush}}" /></Grid>
+                                <Grid Margin="0,3" Visibility="{Binding HasGpuTemperature, Converter={StaticResource BoolVisibility}}"><TextBlock Text="GPU" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding GpuTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding GpuHealth, Converter={StaticResource HealthBrush}}" /></Grid>
+                                <Grid Margin="0,3" Visibility="{Binding HasMotherboardTemperature, Converter={StaticResource BoolVisibility}}"><TextBlock Text="CHIPSET" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding MotherboardTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
+                                <Grid Margin="0,3" Visibility="{Binding HasDiskTemperature, Converter={StaticResource BoolVisibility}}"><TextBlock Text="SSD" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding DiskTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding DiskHealth, Converter={StaticResource HealthBrush}}" /></Grid>
                             </StackPanel>
                         </Border>
-                        <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                        <Border Grid.Column="2" Style="{StaticResource CardStyle}"
+                                Visibility="{Binding HasMemoryData, Converter={StaticResource BoolVisibility}}">
                             <StackPanel>
                                 <TextBlock Text="MEMORY" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,10" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -138,18 +147,10 @@
 
                     <Grid Margin="0,0,0,13">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="13" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+                        <Border Grid.Column="0" Style="{StaticResource CardStyle}"
+                                Visibility="{Binding HasFans, Converter={StaticResource BoolVisibility}}">
                             <StackPanel>
                                 <TextBlock Text="FANS" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
-                                <TextBlock Text="{Binding FanSummary}" Style="{StaticResource MutedTextStyle}"
-                                           Visibility="{Binding HasFans, Converter={StaticResource BoolVisibility}, ConverterParameter=Invert}" />
-                                <TextBlock Text="{Binding SensorAccessHint}" Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,5,0,4"
-                                           Visibility="{Binding NeedsSensorAccess, Converter={StaticResource BoolVisibility}}" />
-                                <WrapPanel Visibility="{Binding NeedsSensorAccess, Converter={StaticResource BoolVisibility}}">
-                                    <Button Content="Get PawnIO" Style="{StaticResource SmallButtonStyle}" Padding="7,4" Margin="0,0,5,0" Click="PawnIoInstaller_Click" />
-                                    <Button Content="Recheck sensors" Style="{StaticResource SmallButtonStyle}" Padding="7,4" Margin="0,0,5,0" Click="RecheckSensors_Click" />
-                                    <Button Content="Run as admin" Style="{StaticResource SmallButtonStyle}" Padding="7,4" Margin="0,0,5,0" Click="RestartElevated_Click" />
-                                </WrapPanel>
                                 <ItemsControl ItemsSource="{Binding Fans}" MaxHeight="125">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -159,7 +160,8 @@
                                 </ItemsControl>
                             </StackPanel>
                         </Border>
-                        <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                        <Border Grid.Column="2" Style="{StaticResource CardStyle}"
+                                Visibility="{Binding HasDiskData, Converter={StaticResource BoolVisibility}}">
                             <StackPanel>
                                 <TextBlock Text="STORAGE" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
                                 <TextBlock Text="{Binding Snapshot.DiskName}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" Margin="0,0,0,5" />
@@ -168,8 +170,8 @@
                                     <TextBlock Text="{Binding DiskTotal}" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Bottom" Margin="5,0,0,2" />
                                 </StackPanel>
                                 <ProgressBar Value="{Binding Snapshot.DiskUsedPercent, Mode=OneWay}" Maximum="100" Margin="0,0,0,8" />
-                                <Grid Margin="0,2"><TextBlock Text="Read" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding DiskRead}" HorizontalAlignment="Right" /></Grid>
-                                <Grid Margin="0,2"><TextBlock Text="Write" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding DiskWrite}" HorizontalAlignment="Right" /></Grid>
+                                <Grid Margin="0,2" Visibility="{Binding HasDiskRead, Converter={StaticResource BoolVisibility}}"><TextBlock Text="Read" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding DiskRead}" HorizontalAlignment="Right" /></Grid>
+                                <Grid Margin="0,2" Visibility="{Binding HasDiskWrite, Converter={StaticResource BoolVisibility}}"><TextBlock Text="Write" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding DiskWrite}" HorizontalAlignment="Right" /></Grid>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -187,18 +189,20 @@
                                 <ProgressBar Value="{Binding Snapshot.BatteryPercent, Mode=OneWay}" Maximum="100" Margin="0,9,0,0" />
                             </StackPanel>
                         </Border>
-                        <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                        <Border Grid.Column="2" Style="{StaticResource CardStyle}"
+                                Visibility="{Binding HasNetworkData, Converter={StaticResource BoolVisibility}}">
                             <StackPanel>
                                 <TextBlock Text="NETWORK" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
                                 <TextBlock Text="{Binding Snapshot.NetworkName}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" Margin="0,0,0,5" />
                                 <Grid Margin="0,3"><TextBlock Text="Down" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding NetworkDown}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
                                 <Grid Margin="0,3"><TextBlock Text="Up" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding NetworkUp}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
-                                <Grid Margin="0,3"><TextBlock Text="Address" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding Snapshot.IpAddress}" HorizontalAlignment="Right" /></Grid>
+                                <Grid Margin="0,3" Visibility="{Binding HasNetworkAddress, Converter={StaticResource BoolVisibility}}"><TextBlock Text="Address" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding Snapshot.IpAddress}" HorizontalAlignment="Right" /></Grid>
                             </StackPanel>
                         </Border>
                     </Grid>
 
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,13">
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,13"
+                            Visibility="{Binding HasProcesses, Converter={StaticResource BoolVisibility}}">
                         <StackPanel>
                             <TextBlock Text="TOP PROCESSES" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
                             <ItemsControl ItemsSource="{Binding Processes}">

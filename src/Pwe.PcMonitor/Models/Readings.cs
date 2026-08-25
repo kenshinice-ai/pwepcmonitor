@@ -2,9 +2,9 @@ namespace Pwe.PcMonitor.Models;
 
 public sealed record FanReading(string Name, double? Rpm, double? Percent = null)
 {
-    public string DisplayValue => Rpm is > 0
+    public string DisplayValue => Rpm is >= 0
         ? $"{Rpm:0} rpm"
-        : Percent is double percent
+        : Percent is double percent && percent >= 0
             ? $"{percent:0}%"
             : "—";
 }

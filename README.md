@@ -4,7 +4,7 @@
 
 **A calm Windows hardware monitor from Paradise Production.**
 
-Current public build: **0.4.1**
+Current public build: **0.5.0**
 
 </div>
 
@@ -13,11 +13,11 @@ PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing ma
 ## Current features
 
 - Windows notification-area icon with CPU activity rule and health colour.
-- Left-click dashboard; right-click settings and quit menu.
-- Optional always-on-top floating widget with CPU, memory, temperature and fan status.
+- Left-click dashboard; right-click settings and quit menu. The tray dashboard dismisses itself when focus moves to the desktop or another window.
+- Optional always-on-top floating widget that dynamically adds readable CPU, GPU, memory, power, battery and fan metrics while hiding unsupported fields.
 - CPU usage, frequency, temperature, package power and per-core bars when available.
 - GPU usage, frequency, temperature and power when available.
-- Vendor-aware GPU temperature sources: NVIDIA NVAPI, AMD ADL and Intel IGCL through the installed graphics driver, with a clear source label in the thermals card.
+- Vendor-aware GPU temperature sources: NVIDIA NVAPI, AMD ADL and Intel IGCL through the installed graphics driver, with the selected provider retained in sensor diagnostics.
 - Memory, system drive capacity, network throughput/address, battery and top processes.
 - Read-only fan RPM display. **There is no fan-control or hardware-write path.**
 - 89-sample CPU, GPU and power history.
@@ -26,11 +26,12 @@ PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing ma
 - Optional full sensor list.
 - Launch-at-login setting stored for the current Windows user.
 - Graceful fallback to basic Windows metrics if enhanced hardware sensors are unavailable.
-- Motherboard temperature and fan channels are attempted even when PawnIO is not installed; unsupported or protected channels remain visibly marked instead of being treated as zero.
-- CPU/GPU temperature status distinguishes missing PawnIO, missing elevation and channels that the hardware/driver does not expose.
+- Motherboard temperature and fan channels are attempted even when PawnIO is not installed; unsupported or protected channels are recorded in Sensor diagnostics instead of being treated as zero.
+- CPU/GPU temperature diagnostics distinguish missing PawnIO, missing elevation and channels that the hardware/driver does not expose.
 - GPU temperature selection prefers the vendor's core/edge channel instead of accidentally showing a memory-junction or hotspot value as the main GPU temperature. Hotspot and memory channels remain available in the full sensor list.
 - Explicit **Get PawnIO** and **Recheck sensors** actions are available from the dashboard, Settings menu and tray menu.
 - PawnIO is optional: without it, the app stays in native sensor mode and does not probe protected motherboard controller registers.
+- Empty or unsupported values are hidden from the dashboard and floating widget. Their sensor diagnostics remain available from Settings and the tray menu.
 
 ## Requirements
 
@@ -38,7 +39,7 @@ PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing ma
 - x64 PC for the first packaged build.
 - Some motherboard, CPU-temperature and fan sensors require LibreHardwareMonitor's PawnIO hardware-access layer and may not be exposed by every PC or laptop.
 
-Missing or unsupported measurements are shown as `—`; the app does not invent or estimate unavailable sensor values.
+Missing or unsupported measurements are hidden from the dashboard and floating widget; the app does not invent or estimate unavailable sensor values. Open **Settings → Sensor diagnostics** to see the channels that the current hardware or driver did not expose.
 
 ## Download a public Windows build
 
@@ -76,7 +77,7 @@ PWE does not bundle vendor driver DLLs or load an untrusted replacement. The pac
 | AMD Radeon | [AMD ADL/ADL2](https://gpuopen.com/archived/adl/) backend (ADLX is the newer SDK) | AMD's `atiadlxx.dll` supplied by the display driver |
 | Intel UHD / Iris / Arc | [Intel Graphics Control Library (IGCL)](https://intel.github.io/drivers.gpu.control-library/Control/api.html) | Intel's `ControlLib.dll` supplied by the graphics driver |
 
-The UI reports the selected source as `NVIDIA NVAPI via LibreHardwareMonitor`, `AMD ADL via LibreHardwareMonitor` or `Intel IGCL via LibreHardwareMonitor`. If the driver does not expose a readable temperature, the source remains visible while the value stays `—`; no estimate is shown. These GPU driver telemetry paths do not require PawnIO. PawnIO remains an optional path for protected motherboard/controller channels.
+The UI reports the selected source as `NVIDIA NVAPI via LibreHardwareMonitor`, `AMD ADL via LibreHardwareMonitor` or `Intel IGCL via LibreHardwareMonitor` in Sensor diagnostics. If the driver does not expose a readable temperature, the temperature field is hidden and the reason remains available in Settings; no estimate is shown. These GPU driver telemetry paths do not require PawnIO. PawnIO remains an optional path for protected motherboard/controller channels.
 
 ## Build from source
 

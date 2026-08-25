@@ -4,7 +4,7 @@
 
 **A calm Windows hardware monitor from Paradise Production.**
 
-Current public build: **0.4.0**
+Current public build: **0.4.1**
 
 </div>
 

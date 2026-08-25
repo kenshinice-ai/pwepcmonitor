@@ -373,17 +373,33 @@ public sealed class SystemSampler : IDisposable
         var missing = !hasCpuTemperature && !hasGpuTemperature
             ? "CPU/GPU temperatures"
             : !hasCpuTemperature ? "CPU temperature" : "GPU temperature";
-        return $"{missing} unavailable · {MissingChannelHint(hasCpuTemperature, hasGpuTemperature, false, false)}{source}";
+        return $"{missing} unavailable · {MissingChannelHint(hasCpuTemperature, hasGpuTemperature, false, false, gpuTemperatureSource)}{source}";
     }
 
-    private string MissingChannelHint(bool hasCpuTemperature, bool hasGpuTemperature, bool hasMotherboardTemperature, bool hasFanRpm)
+    private string MissingChannelHint(
+        bool hasCpuTemperature,
+        bool hasGpuTemperature,
+        bool hasMotherboardTemperature,
+        bool hasFanRpm,
+        string? gpuTemperatureSource = null)
     {
+        if (!hasGpuTemperature && IsVendorGpuSource(gpuTemperatureSource))
+        {
+            return !hasCpuTemperature && !_pawnIoInstalled
+                ? "GPU driver did not expose it; other protected channels may need PawnIO"
+                : "not exposed by this GPU driver or hardware";
+        }
         if (!_pawnIoInstalled) return "PawnIO may be required; administrator mode alone is not enough";
         if (!_isElevated) return "try administrator access";
         if (!hasCpuTemperature || !hasGpuTemperature) return "not exposed by this hardware or driver";
         if (!hasMotherboardTemperature || !hasFanRpm) return "some board channels may be unsupported";
         return "some channels may be unsupported";
     }
+
+    private static bool IsVendorGpuSource(string? source) =>
+        source?.Contains("NVAPI", StringComparison.OrdinalIgnoreCase) == true ||
+        source?.Contains("ADL", StringComparison.OrdinalIgnoreCase) == true ||
+        source?.Contains("IGCL", StringComparison.OrdinalIgnoreCase) == true;
 
     private static bool IsGpuHardware(IHardware hardware)
     {

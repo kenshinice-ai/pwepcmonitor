@@ -4,7 +4,7 @@
 
 **A calm Windows hardware monitor from Paradise Production.**
 
-First runnable version: **0.1.0**
+Current public build: **0.3.0**
 
 </div>
 
@@ -26,6 +26,9 @@ PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing ma
 - Launch-at-login setting stored for the current Windows user.
 - Graceful fallback to basic Windows metrics if enhanced hardware sensors are unavailable.
 - Motherboard temperature and fan channels are attempted even when PawnIO is not installed; unsupported or protected channels remain visibly marked instead of being treated as zero.
+- CPU/GPU temperature status distinguishes missing PawnIO, missing elevation and channels that the hardware/driver does not expose.
+- Explicit **Get PawnIO** and **Recheck sensors** actions are available from the dashboard, Settings menu and tray menu.
+- PawnIO is optional: without it, the app stays in native sensor mode and does not probe protected motherboard controller registers.
 
 ## Requirements
 
@@ -57,7 +60,9 @@ If Windows SmartScreen shows an unknown-publisher warning, choose **More info** 
 
 If a machine has a hardware-specific sensor problem, start `PwePcMonitor.exe --safe-mode` once. Safe mode keeps the dashboard and Windows-native CPU, memory, disk, network, battery and process readings while skipping enhanced sensor-driver access. The app writes startup and sampling diagnostics to `%LOCALAPPDATA%\PWE\PC Monitor\logs\latest.log`.
 
-Motherboard temperature chips and fan RPM channels may require the official PawnIO support used by LibreHardwareMonitor or an elevated process. The Settings menu provides **Run as admin** and an official sensor-support guide; PWE does not silently install a kernel driver. Some laptops and proprietary controllers do not expose readable or controllable channels at all.
+Motherboard temperature chips and CPU/GPU temperature channels may require the official [PawnIO Setup](https://github.com/namazso/PawnIO.Setup/releases) support used by LibreHardwareMonitor or an elevated process. Administrator mode and PawnIO are separate prerequisites. When PawnIO is missing, choose **Get PawnIO** in the dashboard, Settings menu or tray menu; the app opens the official installer download in your browser. After completing the UAC install, choose **Recheck sensors** so the current monitor session reopens its hardware connection. PWE does not bundle, download silently or execute a kernel driver installer. Some laptops and proprietary controllers do not expose readable or controllable channels at all.
+
+Without PawnIO, the monitor still keeps Windows-native CPU usage, memory, disk, network, battery and process data, and LibreHardwareMonitor can expose any CPU/GPU/storage channels that the installed hardware and driver make available. Board EC/SMBus channels and most fan RPM channels remain unavailable by design. Windows' generic WMI temperature-probe class is not used as a CPU/GPU substitute because Microsoft documents that its `CurrentReading` is not populated by current implementations.
 
 ## Build from source
 
@@ -79,6 +84,7 @@ src/Pwe.PcMonitor/
   Services/
     WindowsMetricsReader  basic CPU, memory, disk, network, battery and process data
     SystemSampler         read-only LibreHardwareMonitor adapter and graceful fallback
+    SensorAccessService    explicit official PawnIO link, elevation and recheck flow
     ThemeManager          brand palette and system theme selection
     StartupService        current-user launch-at-login entry
   ViewModels/             sampling loop, history and formatted UI state

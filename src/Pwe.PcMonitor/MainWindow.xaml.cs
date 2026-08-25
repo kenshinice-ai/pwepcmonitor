@@ -75,6 +75,8 @@ public partial class MainWindow : Window
         menu.Items.Add(CreateCheckedItem("Show All Sensors", _viewModel.ShowSensors, () => _viewModel.ToggleSensors()));
         menu.Items.Add(CreateCheckedItem("Show Floating Widget", _viewModel.ShowFloatingWidget, () => ((App)Application.Current).ToggleFloatingWindow()));
         menu.Items.Add(CreateCheckedItem("Launch at Login", StartupService.IsEnabled, () => StartupService.SetEnabled(!StartupService.IsEnabled)));
+        menu.Items.Add(CreateActionItem("Get PawnIO installer", ((App)Application.Current).OpenPawnIoInstaller));
+        menu.Items.Add(CreateActionItem("Recheck sensor access", ((App)Application.Current).RecheckSensors));
         menu.Items.Add(CreateActionItem("Restart with sensor access", ((App)Application.Current).RestartAsAdministrator));
         menu.Items.Add(CreateActionItem("Open sensor support guide", ((App)Application.Current).OpenSensorGuide));
         menu.Items.Add(new Separator());
@@ -117,6 +119,9 @@ public partial class MainWindow : Window
     private void RestartElevated_Click(object sender, RoutedEventArgs e) =>
         ((App)Application.Current).RestartAsAdministrator();
 
-    private void SensorGuide_Click(object sender, RoutedEventArgs e) =>
-        ((App)Application.Current).OpenSensorGuide();
+    private void PawnIoInstaller_Click(object sender, RoutedEventArgs e) =>
+        ((App)Application.Current).OpenPawnIoInstaller();
+
+    private void RecheckSensors_Click(object sender, RoutedEventArgs e) =>
+        ((App)Application.Current).RecheckSensors();
 }

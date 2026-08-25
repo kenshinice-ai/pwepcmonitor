@@ -117,6 +117,7 @@
                                 <Grid Margin="0,3"><TextBlock Text="GPU" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding GpuTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding GpuHealth, Converter={StaticResource HealthBrush}}" /></Grid>
                                 <Grid Margin="0,3"><TextBlock Text="CHIPSET" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding MotherboardTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
                                 <Grid Margin="0,3"><TextBlock Text="SSD" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding DiskTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding DiskHealth, Converter={StaticResource HealthBrush}}" /></Grid>
+                                <TextBlock Text="{Binding TemperatureStatus}" Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,8,0,0" />
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="2" Style="{StaticResource CardStyle}">
@@ -143,8 +144,9 @@
                                 <TextBlock Text="{Binding SensorAccessHint}" Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,5,0,4"
                                            Visibility="{Binding NeedsSensorAccess, Converter={StaticResource BoolVisibility}}" />
                                 <WrapPanel Visibility="{Binding NeedsSensorAccess, Converter={StaticResource BoolVisibility}}">
+                                    <Button Content="Get PawnIO" Style="{StaticResource SmallButtonStyle}" Padding="7,4" Margin="0,0,5,0" Click="PawnIoInstaller_Click" />
+                                    <Button Content="Recheck sensors" Style="{StaticResource SmallButtonStyle}" Padding="7,4" Margin="0,0,5,0" Click="RecheckSensors_Click" />
                                     <Button Content="Run as admin" Style="{StaticResource SmallButtonStyle}" Padding="7,4" Margin="0,0,5,0" Click="RestartElevated_Click" />
-                                    <Button Content="Sensor guide" Style="{StaticResource SmallButtonStyle}" Padding="7,4" Click="SensorGuide_Click" />
                                 </WrapPanel>
                                 <ItemsControl ItemsSource="{Binding Fans}" MaxHeight="125">
                                     <ItemsControl.ItemTemplate>

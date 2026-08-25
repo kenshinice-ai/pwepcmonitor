@@ -4,10 +4,12 @@
              xmlns:converters="clr-namespace:Pwe.PcMonitor.Converters"
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
-        <SolidColorBrush x:Key="BackgroundBrush" Color="#0E1729" />
-        <SolidColorBrush x:Key="CardBrush" Color="#152239" />
-        <SolidColorBrush x:Key="StrokeBrush" Color="#26344B" />
-        <SolidColorBrush x:Key="RailBrush" Color="#2C3A51" />
+        <!-- The layered windows already support transparency. Keep the PWE
+             palette, but let the desktop show through without dimming text. -->
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#E60E1729" />
+        <SolidColorBrush x:Key="CardBrush" Color="#D9152239" />
+        <SolidColorBrush x:Key="StrokeBrush" Color="#B326344B" />
+        <SolidColorBrush x:Key="RailBrush" Color="#A62C3A51" />
         <SolidColorBrush x:Key="TextBrush" Color="#F7F5F2" />
         <SolidColorBrush x:Key="MutedBrush" Color="#9098A8" />
         <SolidColorBrush x:Key="AccentBrush" Color="#F5B335" />

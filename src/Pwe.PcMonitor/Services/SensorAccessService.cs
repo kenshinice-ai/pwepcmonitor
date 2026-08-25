@@ -10,7 +10,24 @@ namespace Pwe.PcMonitor.Services;
 /// </summary>
 public static class SensorAccessService
 {
-    public const string GuideUrl = "https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases";
+    public const string GuideUrl = "https://github.com/namazso/PawnIO.Setup/releases";
+    public const string InstallerUrl = "https://github.com/namazso/PawnIO.Setup/releases/latest/download/PawnIO_setup.exe";
+
+    public static bool IsPawnIoInstalled
+    {
+        get
+        {
+            try
+            {
+                return LibreHardwareMonitor.PawnIo.PawnIo.IsInstalled;
+            }
+            catch (Exception exception)
+            {
+                AppDiagnostics.Write("PawnIO availability check failed", exception);
+                return false;
+            }
+        }
+    }
 
     public static bool IsElevated
     {
@@ -58,14 +75,30 @@ public static class SensorAccessService
 
     public static bool OpenGuide()
     {
+        return OpenUrl(GuideUrl, "Sensor support guide");
+    }
+
+    /// <summary>
+    /// Opens the official PawnIO installer download in the user's browser. The
+    /// app deliberately does not download or execute a kernel installer itself:
+    /// the user can review the official release and approve the UAC prompt in
+    /// the normal Windows shell.
+    /// </summary>
+    public static bool OpenInstaller()
+    {
+        return OpenUrl(InstallerUrl, "PawnIO installer");
+    }
+
+    private static bool OpenUrl(string url, string description)
+    {
         try
         {
-            Process.Start(new ProcessStartInfo(GuideUrl) { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
             return true;
         }
         catch (Exception exception)
         {
-            AppDiagnostics.Write("Sensor support guide could not be opened", exception);
+            AppDiagnostics.Write($"{description} could not be opened", exception);
             return false;
         }
     }

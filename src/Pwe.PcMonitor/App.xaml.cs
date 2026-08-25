@@ -143,6 +143,8 @@ public partial class App : System.Windows.Application
         floating.Click += (_, _) => ToggleFloatingWindow();
         menu.Items.Add(floating);
 
+        menu.Items.Add("Get PawnIO installer", null, (_, _) => OpenPawnIoInstaller());
+        menu.Items.Add("Recheck sensor access", null, (_, _) => RecheckSensors());
         menu.Items.Add("Restart with sensor access", null, (_, _) => RestartAsAdministrator());
         menu.Items.Add("Open sensor support guide", null, (_, _) => OpenSensorGuide());
 
@@ -302,6 +304,16 @@ public partial class App : System.Windows.Application
     public void OpenSensorGuide()
     {
         if (!SensorAccessService.OpenGuide()) ShowFailure("The sensor support guide could not be opened.");
+    }
+
+    public void OpenPawnIoInstaller()
+    {
+        if (!SensorAccessService.OpenInstaller()) ShowFailure("The official PawnIO installer could not be opened.");
+    }
+
+    public void RecheckSensors()
+    {
+        _viewModel?.RecheckSensors();
     }
 
     public void ExitApplication()

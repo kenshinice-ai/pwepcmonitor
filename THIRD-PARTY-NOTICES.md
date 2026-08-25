@@ -10,6 +10,14 @@ Licence: [licenses/MPL-2.0.txt](licenses/MPL-2.0.txt)
 
 No LibreHardwareMonitor source files are modified in this repository. The NuGet package and its transitive dependencies retain their own notices and licences.
 
+## PawnIO — external optional prerequisite
+
+PWE PC MONITOR does not bundle the PawnIO kernel driver or its installer. When a
+machine needs the extra hardware-access layer, the app opens the official
+installer published at <https://github.com/namazso/PawnIO.Setup/releases> and
+the user approves installation in Windows. PawnIO remains a separate optional
+component with its own source, binary and licensing terms.
+
 ## Inter — SIL Open Font License 1.1
 
 Inter is bundled for interface text and numeric readouts.

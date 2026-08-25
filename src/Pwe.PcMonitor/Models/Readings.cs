@@ -25,6 +25,7 @@ public sealed record SystemSnapshot
     public string ProcessorName { get; init; } = "Windows PC";
     public string GpuName { get; init; } = "GPU";
     public string SensorStatus { get; init; } = "Basic Windows metrics";
+    public string TemperatureStatus { get; init; } = "Temperature channels unavailable";
     public TimeSpan Uptime { get; init; }
 
     public double CpuUsage { get; init; }

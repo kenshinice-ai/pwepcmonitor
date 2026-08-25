@@ -44,4 +44,23 @@ public partial class FloatingWindow : Window
         if (DataContext is MonitorViewModel viewModel && viewModel.ShowFloatingWidget)
             viewModel.ToggleFloatingWidget();
     }
+
+    private async void OptimizeMemory_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MonitorViewModel viewModel)
+            await viewModel.OptimizeMemoryAsync();
+    }
+
+    private async void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        var memoryShortcut = ModifierKeys.Control | ModifierKeys.Shift;
+        if (e.Key != Key.M || (Keyboard.Modifiers & memoryShortcut) != memoryShortcut)
+            return;
+
+        if (DataContext is MonitorViewModel viewModel && viewModel.CanOptimizeMemory)
+        {
+            e.Handled = true;
+            await viewModel.OptimizeMemoryAsync();
+        }
+    }
 }

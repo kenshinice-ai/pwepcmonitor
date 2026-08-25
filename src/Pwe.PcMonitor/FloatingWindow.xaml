@@ -2,21 +2,22 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="PWE PC MONITOR"
-        Width="326" MinWidth="290" MinHeight="150" SizeToContent="Height"
+        Width="348" MinWidth="300" MinHeight="152" SizeToContent="Height"
         WindowStyle="None" ResizeMode="NoResize"
         AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" Topmost="True" ShowActivated="False"
-        Closing="Window_Closing">
+        Closing="Window_Closing" PreviewKeyDown="Window_PreviewKeyDown">
     <Border Background="{DynamicResource CardBrush}"
             BorderBrush="{DynamicResource StrokeBrush}"
-            BorderThickness="1" CornerRadius="16" Padding="14">
+            BorderThickness="1" CornerRadius="18" Padding="14,13,14,12">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Grid MouseLeftButtonDown="Header_MouseLeftButtonDown">
+            <Grid Grid.Row="0" MouseLeftButtonDown="Header_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -27,63 +28,160 @@
                     <Image Source="Resources/AppIcon.png" Stretch="Uniform" Opacity="0.94"
                            AutomationProperties.Name="PWE wing mark" />
                 </Border>
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
-                    <TextBlock Text="{Binding MachineSummary}" FontWeight="SemiBold"
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,10,0">
+                    <TextBlock Text="{Binding MachineSummary}" FontSize="12" FontWeight="SemiBold"
                                TextTrimming="CharacterEllipsis" />
                     <TextBlock Text="{Binding Snapshot.ProcessorName}" Style="{StaticResource MutedTextStyle}"
-                               TextTrimming="CharacterEllipsis" />
+                               FontSize="10" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
                 <Button Grid.Column="2" Content="×" Style="{StaticResource SmallButtonStyle}"
-                        Padding="7,1" FontSize="16" Click="CloseWidget_Click" />
+                        Padding="7,1" FontSize="16" Click="CloseWidget_Click"
+                        ToolTip="Close floating widget" AutomationProperties.Name="Close floating widget" />
             </Grid>
 
-            <WrapPanel Grid.Row="1" Margin="0,12,0,10">
-                <StackPanel Width="58" Margin="0,0,8,8">
-                    <TextBlock Text="CPU" Style="{StaticResource SectionLabelStyle}" />
-                    <TextBlock Text="{Binding CpuValue}" FontSize="20" FontWeight="SemiBold"
-                               Foreground="{Binding CpuHealth, Converter={StaticResource HealthBrush}}" />
-                    <TextBlock Text="{Binding CpuSub}" Style="{StaticResource MutedTextStyle}"
-                               Visibility="{Binding HasCpuSub, Converter={StaticResource BoolVisibility}}" />
-                </StackPanel>
-                <StackPanel Width="58" Margin="0,0,8,8"
-                            Visibility="{Binding HasGpuData, Converter={StaticResource BoolVisibility}}">
-                    <TextBlock Text="GPU" Style="{StaticResource SectionLabelStyle}" />
-                    <TextBlock Text="{Binding GpuValue}" FontSize="20" FontWeight="SemiBold"
-                               Foreground="{Binding GpuHealth, Converter={StaticResource HealthBrush}}"
-                               Visibility="{Binding HasGpuUsage, Converter={StaticResource BoolVisibility}}" />
-                    <TextBlock Text="{Binding GpuSub}" Style="{StaticResource MutedTextStyle}"
-                               TextTrimming="CharacterEllipsis"
-                               Visibility="{Binding HasGpuSub, Converter={StaticResource BoolVisibility}}" />
-                </StackPanel>
-                <StackPanel Width="58" Margin="0,0,8,8"
-                            Visibility="{Binding HasMemoryData, Converter={StaticResource BoolVisibility}}">
-                    <TextBlock Text="MEM" Style="{StaticResource SectionLabelStyle}" />
-                    <TextBlock Text="{Binding Snapshot.MemoryUsedPercent, StringFormat={}{0:0}%}"
-                               FontSize="20" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding MemoryAvailable}" Style="{StaticResource MutedTextStyle}" />
-                </StackPanel>
-                <StackPanel Width="70" Margin="0,0,8,8" Visibility="{Binding HasFans, Converter={StaticResource BoolVisibility}}">
-                    <TextBlock Text="FAN" Style="{StaticResource SectionLabelStyle}" />
-                    <TextBlock Text="{Binding FanValue}" FontSize="17" FontWeight="SemiBold"
-                               TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding FanSub}" Style="{StaticResource MutedTextStyle}"
-                               TextTrimming="CharacterEllipsis" />
-                </StackPanel>
-                <StackPanel Width="70" Margin="0,0,8,8" Visibility="{Binding HasPowerData, Converter={StaticResource BoolVisibility}}">
-                    <TextBlock Text="POWER" Style="{StaticResource SectionLabelStyle}" />
-                    <TextBlock Text="{Binding PowerValue}" FontSize="17" FontWeight="SemiBold"
-                               Foreground="{Binding PowerHealth, Converter={StaticResource HealthBrush}}" />
-                    <TextBlock Text="{Binding PowerSub}" Style="{StaticResource MutedTextStyle}"
-                               TextTrimming="CharacterEllipsis"
-                               Visibility="{Binding HasPowerSub, Converter={StaticResource BoolVisibility}}" />
-                </StackPanel>
-                <StackPanel Width="70" Margin="0,0,8,8" Visibility="{Binding HasBattery, Converter={StaticResource BoolVisibility}}">
-                    <TextBlock Text="BATTERY" Style="{StaticResource SectionLabelStyle}" />
-                    <TextBlock Text="{Binding BatteryValue}" FontSize="17" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding BatteryState}" Style="{StaticResource MutedTextStyle}"
-                               TextTrimming="CharacterEllipsis" />
-                </StackPanel>
+            <WrapPanel Grid.Row="1" Margin="0,12,0,3" ItemWidth="154">
+                <Border Width="146" Height="54" Margin="0,0,8,8"
+                        Background="{DynamicResource RailBrush}" CornerRadius="10" Padding="10,7">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="CPU" Style="{StaticResource SectionLabelStyle}" />
+                        <TextBlock Grid.Column="1" Text="{Binding CpuValue}" FontSize="18" FontWeight="SemiBold"
+                                   Foreground="{Binding CpuHealth, Converter={StaticResource HealthBrush}}" />
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding CpuSub}"
+                                   Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding HasCpuSub, Converter={StaticResource BoolVisibility}}" />
+                    </Grid>
+                </Border>
+
+                <Border Width="146" Height="54" Margin="0,0,8,8"
+                        Background="{DynamicResource RailBrush}" CornerRadius="10" Padding="10,7"
+                        Visibility="{Binding HasGpuData, Converter={StaticResource BoolVisibility}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="GPU" Style="{StaticResource SectionLabelStyle}" />
+                        <TextBlock Grid.Column="1" Text="{Binding GpuValue}" FontSize="18" FontWeight="SemiBold"
+                                   Foreground="{Binding GpuHealth, Converter={StaticResource HealthBrush}}"
+                                   Visibility="{Binding HasGpuUsage, Converter={StaticResource BoolVisibility}}" />
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding GpuSub}"
+                                   Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding HasGpuSub, Converter={StaticResource BoolVisibility}}" />
+                    </Grid>
+                </Border>
+
+                <Border Width="146" Height="54" Margin="0,0,8,8"
+                        Background="{DynamicResource RailBrush}" CornerRadius="10" Padding="10,7"
+                        Visibility="{Binding HasMemoryData, Converter={StaticResource BoolVisibility}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="MEMORY" Style="{StaticResource SectionLabelStyle}" />
+                        <TextBlock Grid.Column="1" Text="{Binding Snapshot.MemoryUsedPercent, StringFormat={}{0:0}%}"
+                                   FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding MemoryAvailable}"
+                                   Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                </Border>
+
+                <Border Width="146" Height="54" Margin="0,0,8,8"
+                        Background="{DynamicResource RailBrush}" CornerRadius="10" Padding="10,7"
+                        Visibility="{Binding HasPowerData, Converter={StaticResource BoolVisibility}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="POWER" Style="{StaticResource SectionLabelStyle}" />
+                        <TextBlock Grid.Column="1" Text="{Binding PowerValue}" FontSize="18" FontWeight="SemiBold"
+                                   Foreground="{Binding PowerHealth, Converter={StaticResource HealthBrush}}" />
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding PowerSub}"
+                                   Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding HasPowerSub, Converter={StaticResource BoolVisibility}}" />
+                    </Grid>
+                </Border>
+
+                <Border Width="146" Height="54" Margin="0,0,8,8"
+                        Background="{DynamicResource RailBrush}" CornerRadius="10" Padding="10,7"
+                        Visibility="{Binding HasFans, Converter={StaticResource BoolVisibility}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="FAN" Style="{StaticResource SectionLabelStyle}" />
+                        <TextBlock Grid.Column="1" Text="{Binding FanValue}" FontSize="17" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding FanSub}"
+                                   Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                </Border>
+
+                <Border Width="146" Height="54" Margin="0,0,8,8"
+                        Background="{DynamicResource RailBrush}" CornerRadius="10" Padding="10,7"
+                        Visibility="{Binding HasBattery, Converter={StaticResource BoolVisibility}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="BATTERY" Style="{StaticResource SectionLabelStyle}" />
+                        <TextBlock Grid.Column="1" Text="{Binding BatteryValue}" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding BatteryState}"
+                                   Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                </Border>
             </WrapPanel>
+
+            <Border Grid.Row="2" Background="{DynamicResource RailBrush}" CornerRadius="10" Padding="8,5"
+                    Visibility="{Binding HasMemoryData, Converter={StaticResource BoolVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Button Content="Optimize memory" Style="{StaticResource SmallButtonStyle}"
+                            Padding="5,2" IsEnabled="{Binding CanOptimizeMemory}"
+                            Click="OptimizeMemory_Click"
+                            ToolTip="Optimize memory (Ctrl+Shift+M)"
+                            AutomationProperties.Name="Optimize memory" />
+                    <TextBlock Grid.Column="2" Text="{Binding MemoryActionStatus}"
+                               Style="{StaticResource MutedTextStyle}" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Visibility="{Binding HasMemoryActionStatus, Converter={StaticResource BoolVisibility}}" />
+                </Grid>
+            </Border>
         </Grid>
     </Border>
 </Window>

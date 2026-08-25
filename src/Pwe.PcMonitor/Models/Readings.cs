@@ -26,6 +26,7 @@ public sealed record SystemSnapshot
     public string GpuName { get; init; } = "GPU";
     public string SensorStatus { get; init; } = "Basic Windows metrics";
     public string TemperatureStatus { get; init; } = "Temperature channels unavailable";
+    public string GpuTemperatureSource { get; init; } = "GPU provider not detected";
     public TimeSpan Uptime { get; init; }
 
     public double CpuUsage { get; init; }

@@ -10,6 +10,13 @@ Licence: [licenses/MPL-2.0.txt](licenses/MPL-2.0.txt)
 
 No LibreHardwareMonitor source files are modified in this repository. The NuGet package and its transitive dependencies retain their own notices and licences.
 
+LibreHardwareMonitor's Windows GPU backends use the vendor interfaces exposed by
+the installed graphics driver: NVIDIA NVAPI, AMD ADL/ADL2 and Intel Graphics
+Control Library (IGCL). PWE only consumes the managed library's read-only sensor
+surface; it does not redistribute `nvapi64.dll`, `atiadlxx.dll` or
+`ControlLib.dll`. Those binaries remain part of their respective driver
+installations and are governed by their vendor terms.
+
 ## PawnIO — external optional prerequisite
 
 PWE PC MONITOR does not bundle the PawnIO kernel driver or its installer. When a

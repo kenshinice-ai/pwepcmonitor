@@ -66,6 +66,8 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     public string CpuAverageTemperature => FormatTemperatureDetailed(Snapshot.CpuTemperature);
     public string CpuMaxTemperature => FormatTemperatureDetailed(Snapshot.CpuTemperatureMax);
     public string GpuTemperature => FormatTemperatureDetailed(Snapshot.GpuTemperature);
+    public string GpuTemperatureSource => Snapshot.GpuTemperatureSource;
+    public bool HasGpuTemperatureSource => !Snapshot.GpuTemperatureSource.Equals("GPU provider not detected", StringComparison.OrdinalIgnoreCase);
     public string DiskTemperature => FormatTemperatureDetailed(Snapshot.DiskTemperature);
     public string MotherboardTemperature => FormatTemperatureDetailed(Snapshot.MotherboardTemperature);
     public string TemperatureStatus => Snapshot.TemperatureStatus;
@@ -223,7 +225,7 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         {
             nameof(MachineSummary), nameof(SensorStatus), nameof(CpuValue), nameof(CpuSub), nameof(GpuValue), nameof(GpuSub),
             nameof(CombinedPower), nameof(PowerValue), nameof(PowerSub), nameof(CpuAverageTemperature), nameof(CpuMaxTemperature),
-            nameof(GpuTemperature), nameof(DiskTemperature), nameof(MemoryValue), nameof(MemoryTotal), nameof(MemoryAvailable),
+            nameof(GpuTemperature), nameof(GpuTemperatureSource), nameof(HasGpuTemperatureSource), nameof(DiskTemperature), nameof(MemoryValue), nameof(MemoryTotal), nameof(MemoryAvailable),
             nameof(MemoryPressure), nameof(DiskValue), nameof(DiskTotal), nameof(DiskRead), nameof(DiskWrite), nameof(NetworkDown),
             nameof(NetworkUp), nameof(BatteryValue), nameof(BatteryState), nameof(OverallLabel), nameof(OverallHealth), nameof(CpuHealth),
             nameof(GpuHealth), nameof(PowerHealth), nameof(MemoryHealth), nameof(DiskHealth), nameof(HasBattery),

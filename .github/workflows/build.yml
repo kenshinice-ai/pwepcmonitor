@@ -111,6 +111,7 @@ jobs:
 
           Self-contained Windows x64 build. Extract the zip and run PwePcMonitor.exe.
           No separate .NET installation is required. This release is read-only and does not contain fan control.
+          GPU temperature sources use the installed NVIDIA NVAPI, AMD ADL or Intel IGCL driver backend through LibreHardwareMonitor; no vendor DLLs are bundled.
           PawnIO is optional and is not bundled; the app provides an explicit official installer link and sensor recheck action when a machine needs it.
 
           Verify the download with the accompanying SHA-256 file.

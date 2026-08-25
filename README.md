@@ -4,7 +4,7 @@
 
 **A calm Windows hardware monitor from Paradise Production.**
 
-Current public build: **0.3.0**
+Current public build: **0.4.0**
 
 </div>
 
@@ -17,6 +17,7 @@ PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing ma
 - Optional always-on-top floating widget with CPU, memory, temperature and fan status.
 - CPU usage, frequency, temperature, package power and per-core bars when available.
 - GPU usage, frequency, temperature and power when available.
+- Vendor-aware GPU temperature sources: NVIDIA NVAPI, AMD ADL and Intel IGCL through the installed graphics driver, with a clear source label in the thermals card.
 - Memory, system drive capacity, network throughput/address, battery and top processes.
 - Read-only fan RPM display. **There is no fan-control or hardware-write path.**
 - 89-sample CPU, GPU and power history.
@@ -27,6 +28,7 @@ PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing ma
 - Graceful fallback to basic Windows metrics if enhanced hardware sensors are unavailable.
 - Motherboard temperature and fan channels are attempted even when PawnIO is not installed; unsupported or protected channels remain visibly marked instead of being treated as zero.
 - CPU/GPU temperature status distinguishes missing PawnIO, missing elevation and channels that the hardware/driver does not expose.
+- GPU temperature selection prefers the vendor's core/edge channel instead of accidentally showing a memory-junction or hotspot value as the main GPU temperature. Hotspot and memory channels remain available in the full sensor list.
 - Explicit **Get PawnIO** and **Recheck sensors** actions are available from the dashboard, Settings menu and tray menu.
 - PawnIO is optional: without it, the app stays in native sensor mode and does not probe protected motherboard controller registers.
 
@@ -64,6 +66,18 @@ Motherboard temperature chips and CPU/GPU temperature channels may require the o
 
 Without PawnIO, the monitor still keeps Windows-native CPU usage, memory, disk, network, battery and process data, and LibreHardwareMonitor can expose any CPU/GPU/storage channels that the installed hardware and driver make available. Board EC/SMBus channels and most fan RPM channels remain unavailable by design. Windows' generic WMI temperature-probe class is not used as a CPU/GPU substitute because Microsoft documents that its `CurrentReading` is not populated by current implementations.
 
+### GPU provider matrix
+
+PWE does not bundle vendor driver DLLs or load an untrusted replacement. The packaged app asks LibreHardwareMonitor to use the vendor backend already installed with Windows graphics drivers and falls back to its generic GPU sensor channel when a vendor API is unavailable.
+
+| GPU family | Driver backend | Runtime boundary |
+| --- | --- | --- |
+| NVIDIA GeForce / RTX / Quadro | [NVAPI thermal API](https://docs.nvidia.com/nvapi/group__gputhermal.html) | NVIDIA's `nvapi64.dll` supplied by the display driver |
+| AMD Radeon | [AMD ADL/ADL2](https://gpuopen.com/archived/adl/) backend (ADLX is the newer SDK) | AMD's `atiadlxx.dll` supplied by the display driver |
+| Intel UHD / Iris / Arc | [Intel Graphics Control Library (IGCL)](https://intel.github.io/drivers.gpu.control-library/Control/api.html) | Intel's `ControlLib.dll` supplied by the graphics driver |
+
+The UI reports the selected source as `NVIDIA NVAPI via LibreHardwareMonitor`, `AMD ADL via LibreHardwareMonitor` or `Intel IGCL via LibreHardwareMonitor`. If the driver does not expose a readable temperature, the source remains visible while the value stays `—`; no estimate is shown. These GPU driver telemetry paths do not require PawnIO. PawnIO remains an optional path for protected motherboard/controller channels.
+
 ## Build from source
 
 Install the .NET 10 SDK, then run:
@@ -83,7 +97,8 @@ src/Pwe.PcMonitor/
   Models/                 snapshots, readings and health rules
   Services/
     WindowsMetricsReader  basic CPU, memory, disk, network, battery and process data
-    SystemSampler         read-only LibreHardwareMonitor adapter and graceful fallback
+    SystemSampler         read-only LibreHardwareMonitor adapter, vendor-aware GPU temperature selection and graceful fallback
+    GpuTemperatureProvider maps NVIDIA NVAPI, AMD ADL and Intel IGCL-backed GPU sensors
     SensorAccessService    explicit official PawnIO link, elevation and recheck flow
     ThemeManager          brand palette and system theme selection
     StartupService        current-user launch-at-login entry

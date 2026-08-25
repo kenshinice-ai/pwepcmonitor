@@ -10,6 +10,7 @@ public sealed class SystemSampler : IDisposable
     private Computer? _computer;
     private bool _hardwareAttempted;
     private bool _hardwareInventoryLogged;
+    private bool _gpuProviderLogged;
     private bool _pawnIoInstalled;
     private bool _isElevated;
     private int _hardwareRecheckRequested;
@@ -45,6 +46,7 @@ public sealed class SystemSampler : IDisposable
                 GpuUsage = hardware.GpuUsage,
                 GpuClockMhz = hardware.GpuClockMhz,
                 GpuTemperature = hardware.GpuTemperature,
+                GpuTemperatureSource = hardware.GpuTemperatureSource,
                 GpuPowerWatts = hardware.GpuPowerWatts,
                 MemoryTotal = basic.MemoryTotal,
                 MemoryAvailable = basic.MemoryAvailable,
@@ -110,6 +112,8 @@ public sealed class SystemSampler : IDisposable
             var cpuClocks = new List<double>();
             var cpuPowers = new List<double>();
             var gpuTemps = new List<double>();
+            var gpuTemperatureReadings = new List<GpuTemperatureReading>();
+            var gpuVendors = new HashSet<GpuVendor>();
             var gpuPowers = new List<double>();
             var gpuLoads = new List<double>();
             var gpuClocks = new List<double>();
@@ -130,7 +134,12 @@ public sealed class SystemSampler : IDisposable
                 var isStorage = hardwareType.Equals("Storage", StringComparison.OrdinalIgnoreCase);
                 var isMotherboard = IsMotherboardHardware(hardwareType);
                 if (isCpu) processorName ??= hardware.Name;
-                if (isGpu) gpuName ??= hardware.Name;
+                if (isGpu)
+                {
+                    gpuName ??= hardware.Name;
+                    var vendor = GpuTemperatureProvider.Detect(hardware);
+                    if (vendor != GpuVendor.Unknown) gpuVendors.Add(vendor);
+                }
                 if (isStorage) storageName ??= hardware.Name;
 
                 foreach (var sensor in hardware.Sensors)
@@ -155,7 +164,15 @@ public sealed class SystemSampler : IDisposable
                     else if (type == "Temperature")
                     {
                         if (isCpu || IsCpuTemperatureSensor(hardware, name)) cpuTemps.Add(value);
-                        if (isGpu || IsGpuTemperatureSensor(hardware, name)) gpuTemps.Add(value);
+                        if (isGpu || IsGpuTemperatureSensor(hardware, name))
+                        {
+                            gpuTemps.Add(value);
+                            gpuTemperatureReadings.Add(new(
+                                isGpu ? GpuTemperatureProvider.Detect(hardware) : GpuVendor.Unknown,
+                                hardware.Name,
+                                name,
+                                value));
+                        }
                         if (isStorage) diskTemps.Add(value);
                         if (isMotherboard) motherboardTemps.Add(value);
                     }
@@ -203,6 +220,13 @@ public sealed class SystemSampler : IDisposable
                 cores.Add(new CoreReading("CPU", cpuTotal.Value, Average(cpuClocks)));
             }
 
+            var gpuTemperature = GpuTemperatureProvider.Resolve(gpuTemperatureReadings, gpuVendors);
+            if (gpuTemperature.HasRecognizedVendor && !_gpuProviderLogged)
+            {
+                AppDiagnostics.Write($"GPU temperature provider: {gpuTemperature.Source}");
+                _gpuProviderLogged = true;
+            }
+
             _hardwareStatus = BuildHardwareStatus(
                 sensors.Count,
                 motherboardTemps.Count > 0,
@@ -221,12 +245,13 @@ public sealed class SystemSampler : IDisposable
                 CpuPowerWatts = SumOrNull(cpuPowers),
                 GpuUsage = Max(gpuLoads),
                 GpuClockMhz = Max(gpuClocks),
-                GpuTemperature = Max(gpuTemps),
+                GpuTemperature = gpuTemperature.Temperature ?? Max(gpuTemps),
+                GpuTemperatureSource = gpuTemperature.Source,
                 GpuPowerWatts = SumOrNull(gpuPowers),
                 DiskTemperature = Max(diskTemps),
                 MotherboardTemperature = Average(motherboardTemps),
                 MotherboardTemperatureMax = Max(motherboardTemps),
-                TemperatureStatus = BuildTemperatureStatus(cpuTemps.Count > 0, gpuTemps.Count > 0),
+                TemperatureStatus = BuildTemperatureStatus(cpuTemps.Count > 0, gpuTemperature.Temperature is not null, gpuTemperature.Source),
                 DiskReadBytesPerSecond = diskRead,
                 DiskWriteBytesPerSecond = diskWrite,
                 Cores = cores.Take(32).ToArray(),
@@ -317,6 +342,7 @@ public sealed class SystemSampler : IDisposable
         _computer = null;
         _hardwareAttempted = false;
         _hardwareInventoryLogged = false;
+        _gpuProviderLogged = false;
         _pawnIoInstalled = false;
         _isElevated = false;
         _hardwareStatus = "Rechecking sensor access";
@@ -337,14 +363,17 @@ public sealed class SystemSampler : IDisposable
         return status;
     }
 
-    private string BuildTemperatureStatus(bool hasCpuTemperature, bool hasGpuTemperature)
+    private string BuildTemperatureStatus(bool hasCpuTemperature, bool hasGpuTemperature, string gpuTemperatureSource)
     {
-        if (hasCpuTemperature && hasGpuTemperature) return "CPU and GPU temperature channels available";
+        var source = gpuTemperatureSource is not ("GPU provider not detected" or "LibreHardwareMonitor GPU sensor")
+            ? $" · {gpuTemperatureSource}"
+            : string.Empty;
+        if (hasCpuTemperature && hasGpuTemperature) return $"CPU and GPU temperature channels available{source}";
 
         var missing = !hasCpuTemperature && !hasGpuTemperature
             ? "CPU/GPU temperatures"
             : !hasCpuTemperature ? "CPU temperature" : "GPU temperature";
-        return $"{missing} unavailable · {MissingChannelHint(hasCpuTemperature, hasGpuTemperature, false, false)}";
+        return $"{missing} unavailable · {MissingChannelHint(hasCpuTemperature, hasGpuTemperature, false, false)}{source}";
     }
 
     private string MissingChannelHint(bool hasCpuTemperature, bool hasGpuTemperature, bool hasMotherboardTemperature, bool hasFanRpm)
@@ -376,12 +405,7 @@ public sealed class SystemSampler : IDisposable
 
     private static bool IsGpuTemperatureSensor(IHardware hardware, string name)
     {
-        if (hardware.HardwareType.ToString().Equals("Cpu", StringComparison.OrdinalIgnoreCase)) return false;
-        return IsGpuHardware(hardware) ||
-               name.Contains("GPU", StringComparison.OrdinalIgnoreCase) ||
-               name.Contains("Graphics", StringComparison.OrdinalIgnoreCase) ||
-               name.Contains("Hot Spot", StringComparison.OrdinalIgnoreCase) ||
-               name.Contains("Memory Junction", StringComparison.OrdinalIgnoreCase);
+        return GpuTemperatureProvider.IsTemperatureSensor(hardware, name);
     }
 
     private static bool IsMotherboardHardware(string hardwareType) =>
@@ -483,6 +507,7 @@ public sealed class SystemSampler : IDisposable
         public double? GpuUsage { get; init; }
         public double? GpuClockMhz { get; init; }
         public double? GpuTemperature { get; init; }
+        public string GpuTemperatureSource { get; init; } = "GPU provider not detected";
         public double? GpuPowerWatts { get; init; }
         public double? DiskTemperature { get; init; }
         public double? MotherboardTemperature { get; init; }

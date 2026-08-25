@@ -54,6 +54,16 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <StackPanel Margin="0,0,13,0">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Grid.ColumnSpan" Value="1" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasGpuOrPowerData}" Value="False">
+                                                <Setter Property="Grid.ColumnSpan" Value="5" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
                                 <TextBlock Text="CPU" Style="{StaticResource SectionLabelStyle}" />
                                 <TextBlock Text="{Binding CpuValue}" Style="{StaticResource HeroValueStyle}"
                                            Foreground="{Binding CpuHealth, Converter={StaticResource HealthBrush}}" />
@@ -63,9 +73,19 @@
                                                     Stroke="{Binding CpuHealth, Converter={StaticResource HealthBrush}}" />
                             </StackPanel>
                             <Border Grid.Column="1" Background="{DynamicResource StrokeBrush}"
-                                    Visibility="{Binding HasGpuData, Converter={StaticResource BoolVisibility}}" />
+                                    Visibility="{Binding HasGpuOrPowerData, Converter={StaticResource BoolVisibility}}" />
                             <StackPanel Grid.Column="2" Margin="13,0"
                                         Visibility="{Binding HasGpuData, Converter={StaticResource BoolVisibility}}">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Grid.ColumnSpan" Value="1" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasPowerData}" Value="False">
+                                                <Setter Property="Grid.ColumnSpan" Value="3" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
                                 <TextBlock Text="GPU" Style="{StaticResource SectionLabelStyle}" />
                                 <TextBlock Text="{Binding GpuValue}" Style="{StaticResource HeroValueStyle}"
                                            Foreground="{Binding GpuHealth, Converter={StaticResource HealthBrush}}"
@@ -77,9 +97,21 @@
                                                     Visibility="{Binding HasGpuUsage, Converter={StaticResource BoolVisibility}}" />
                             </StackPanel>
                             <Border Grid.Column="3" Background="{DynamicResource StrokeBrush}"
-                                    Visibility="{Binding HasPowerData, Converter={StaticResource BoolVisibility}}" />
-                            <StackPanel Grid.Column="4" Margin="13,0,0,0"
+                                    Visibility="{Binding HasGpuAndPowerData, Converter={StaticResource BoolVisibility}}" />
+                            <StackPanel Margin="13,0,0,0"
                                         Visibility="{Binding HasPowerData, Converter={StaticResource BoolVisibility}}">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Grid.Column" Value="4" />
+                                        <Setter Property="Grid.ColumnSpan" Value="1" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasGpuData}" Value="False">
+                                                <Setter Property="Grid.Column" Value="2" />
+                                                <Setter Property="Grid.ColumnSpan" Value="3" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
                                 <TextBlock Text="POWER" Style="{StaticResource SectionLabelStyle}" />
                                 <TextBlock Text="{Binding PowerValue}" Style="{StaticResource HeroValueStyle}"
                                            Foreground="{Binding PowerHealth, Converter={StaticResource HealthBrush}}"
@@ -117,10 +149,21 @@
                         </StackPanel>
                     </Border>
 
-                    <Grid Margin="0,0,0,13">
+                    <Grid Margin="0,0,0,13"
+                          Visibility="{Binding HasThermalOrMemoryData, Converter={StaticResource BoolVisibility}}">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="13" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Style="{StaticResource CardStyle}"
+                        <Border Grid.Column="0"
                                 Visibility="{Binding HasThermalReadings, Converter={StaticResource BoolVisibility}}">
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                    <Setter Property="Grid.ColumnSpan" Value="1" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasMemoryData}" Value="False">
+                                            <Setter Property="Grid.ColumnSpan" Value="3" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <StackPanel>
                                 <TextBlock Text="THERMALS" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,10" />
                                 <Grid Margin="0,3" Visibility="{Binding HasCpuAverageTemperature, Converter={StaticResource BoolVisibility}}"><TextBlock Text="CPU avg" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding CpuAverageTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
@@ -130,8 +173,19 @@
                                 <Grid Margin="0,3" Visibility="{Binding HasDiskTemperature, Converter={StaticResource BoolVisibility}}"><TextBlock Text="SSD" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding DiskTemperature}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding DiskHealth, Converter={StaticResource HealthBrush}}" /></Grid>
                             </StackPanel>
                         </Border>
-                        <Border Grid.Column="2" Style="{StaticResource CardStyle}"
-                                Visibility="{Binding HasMemoryData, Converter={StaticResource BoolVisibility}}">
+                        <Border Visibility="{Binding HasMemoryData, Converter={StaticResource BoolVisibility}}">
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                    <Setter Property="Grid.Column" Value="2" />
+                                    <Setter Property="Grid.ColumnSpan" Value="1" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasThermalReadings}" Value="False">
+                                            <Setter Property="Grid.Column" Value="0" />
+                                            <Setter Property="Grid.ColumnSpan" Value="3" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <StackPanel>
                                 <TextBlock Text="MEMORY" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,10" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -141,14 +195,31 @@
                                 <ProgressBar Value="{Binding Snapshot.MemoryUsedPercent, Mode=OneWay}" Maximum="100" Margin="0,0,0,10" />
                                 <Grid Margin="0,3"><TextBlock Text="Available" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding MemoryAvailable}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
                                 <Grid Margin="0,3"><TextBlock Text="Pressure" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding MemoryPressure}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="{Binding MemoryHealth, Converter={StaticResource HealthBrush}}" /></Grid>
+                                <Button Content="Optimize memory" Style="{StaticResource SmallButtonStyle}"
+                                        HorizontalAlignment="Left" Margin="-9,9,0,0"
+                                        IsEnabled="{Binding CanOptimizeMemory}" Click="OptimizeMemory_Click" />
+                                <TextBlock Text="{Binding MemoryActionStatus}" Style="{StaticResource MutedTextStyle}"
+                                           TextWrapping="Wrap" Margin="0,5,0,0"
+                                           Visibility="{Binding HasMemoryActionStatus, Converter={StaticResource BoolVisibility}}" />
                             </StackPanel>
                         </Border>
                     </Grid>
 
-                    <Grid Margin="0,0,0,13">
+                    <Grid Margin="0,0,0,13"
+                          Visibility="{Binding HasFansOrDiskData, Converter={StaticResource BoolVisibility}}">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="13" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Style="{StaticResource CardStyle}"
+                        <Border Grid.Column="0"
                                 Visibility="{Binding HasFans, Converter={StaticResource BoolVisibility}}">
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                    <Setter Property="Grid.ColumnSpan" Value="1" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasDiskData}" Value="False">
+                                            <Setter Property="Grid.ColumnSpan" Value="3" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <StackPanel>
                                 <TextBlock Text="FANS" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
                                 <ItemsControl ItemsSource="{Binding Fans}" MaxHeight="125">
@@ -160,8 +231,19 @@
                                 </ItemsControl>
                             </StackPanel>
                         </Border>
-                        <Border Grid.Column="2" Style="{StaticResource CardStyle}"
-                                Visibility="{Binding HasDiskData, Converter={StaticResource BoolVisibility}}">
+                        <Border Visibility="{Binding HasDiskData, Converter={StaticResource BoolVisibility}}">
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                    <Setter Property="Grid.Column" Value="2" />
+                                    <Setter Property="Grid.ColumnSpan" Value="1" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasFans}" Value="False">
+                                            <Setter Property="Grid.Column" Value="0" />
+                                            <Setter Property="Grid.ColumnSpan" Value="3" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <StackPanel>
                                 <TextBlock Text="STORAGE" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
                                 <TextBlock Text="{Binding Snapshot.DiskName}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" Margin="0,0,0,5" />
@@ -176,10 +258,21 @@
                         </Border>
                     </Grid>
 
-                    <Grid Margin="0,0,0,13">
+                    <Grid Margin="0,0,0,13"
+                          Visibility="{Binding HasBatteryOrNetworkData, Converter={StaticResource BoolVisibility}}">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="13" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Style="{StaticResource CardStyle}"
+                        <Border Grid.Column="0"
                                 Visibility="{Binding HasBattery, Converter={StaticResource BoolVisibility}}">
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                    <Setter Property="Grid.ColumnSpan" Value="1" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasNetworkData}" Value="False">
+                                            <Setter Property="Grid.ColumnSpan" Value="3" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <StackPanel>
                                 <TextBlock Text="BATTERY" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
                                 <StackPanel Orientation="Horizontal">
@@ -189,8 +282,19 @@
                                 <ProgressBar Value="{Binding Snapshot.BatteryPercent, Mode=OneWay}" Maximum="100" Margin="0,9,0,0" />
                             </StackPanel>
                         </Border>
-                        <Border Grid.Column="2" Style="{StaticResource CardStyle}"
-                                Visibility="{Binding HasNetworkData, Converter={StaticResource BoolVisibility}}">
+                        <Border Visibility="{Binding HasNetworkData, Converter={StaticResource BoolVisibility}}">
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
+                                    <Setter Property="Grid.Column" Value="2" />
+                                    <Setter Property="Grid.ColumnSpan" Value="1" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasBattery}" Value="False">
+                                            <Setter Property="Grid.Column" Value="0" />
+                                            <Setter Property="Grid.ColumnSpan" Value="3" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <StackPanel>
                                 <TextBlock Text="NETWORK" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
                                 <TextBlock Text="{Binding Snapshot.NetworkName}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" Margin="0,0,0,5" />

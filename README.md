@@ -4,7 +4,7 @@
 
 **A calm Windows hardware monitor from Paradise Production.**
 
-Current public build: **0.5.0**
+Current public build: **0.6.0**
 
 </div>
 
@@ -19,6 +19,7 @@ PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing ma
 - GPU usage, frequency, temperature and power when available.
 - Vendor-aware GPU temperature sources: NVIDIA NVAPI, AMD ADL and Intel IGCL through the installed graphics driver, with the selected provider retained in sensor diagnostics.
 - Memory, system drive capacity, network throughput/address, battery and top processes.
+- Explicit **Optimize memory** action trims eligible large user-process working sets without terminating processes; the result reports the estimated working-set delta and may not permanently increase free RAM.
 - Read-only fan RPM display. **There is no fan-control or hardware-write path.**
 - 89-sample CPU, GPU and power history.
 - System, dark and light themes using the PWE brand palette.
@@ -99,6 +100,7 @@ src/Pwe.PcMonitor/
   Services/
     WindowsMetricsReader  basic CPU, memory, disk, network, battery and process data
     SystemSampler         read-only LibreHardwareMonitor adapter, vendor-aware GPU temperature selection and graceful fallback
+    MemoryOptimizer        opt-in user-session working-set trim; no process termination or standby-list purge
     GpuTemperatureProvider maps NVIDIA NVAPI, AMD ADL and Intel IGCL-backed GPU sensors
     SensorAccessService    explicit official PawnIO link, elevation and recheck flow
     ThemeManager          brand palette and system theme selection

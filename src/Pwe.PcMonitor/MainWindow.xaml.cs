@@ -88,6 +88,9 @@ public partial class MainWindow : Window
         menu.Items.Add(CreateCheckedItem("Show All Sensors", _viewModel.ShowSensors, () => _viewModel.ToggleSensors()));
         menu.Items.Add(CreateCheckedItem("Show Floating Widget", _viewModel.ShowFloatingWidget, () => ((App)Application.Current).ToggleFloatingWindow()));
         menu.Items.Add(CreateCheckedItem("Launch at Login", StartupService.IsEnabled, () => StartupService.SetEnabled(!StartupService.IsEnabled)));
+        var optimizeMemory = CreateActionItem("Optimize memory", () => _ = ConfirmAndOptimizeMemoryAsync());
+        optimizeMemory.IsEnabled = _viewModel.CanOptimizeMemory;
+        menu.Items.Add(optimizeMemory);
         menu.Items.Add(CreateActionItem("Get PawnIO installer", ((App)Application.Current).OpenPawnIoInstaller));
         menu.Items.Add(CreateActionItem("Recheck sensor access", ((App)Application.Current).RecheckSensors));
         menu.Items.Add(CreateActionItem("Restart with sensor access", ((App)Application.Current).RestartAsAdministrator));
@@ -169,4 +172,22 @@ public partial class MainWindow : Window
 
     private void RecheckSensors_Click(object sender, RoutedEventArgs e) =>
         ((App)Application.Current).RecheckSensors();
+
+    private async void OptimizeMemory_Click(object sender, RoutedEventArgs e) =>
+        await ConfirmAndOptimizeMemoryAsync();
+
+    private async Task ConfirmAndOptimizeMemoryAsync()
+    {
+        if (!_viewModel.CanOptimizeMemory) return;
+
+        var answer = MessageBox.Show(
+            "PWE will trim eligible user-process working sets without closing processes. Windows may page those apps back in later, so this is not a guaranteed permanent increase in free memory. Continue?",
+            "Optimize memory",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Information,
+            MessageBoxResult.No);
+        if (answer != MessageBoxResult.Yes) return;
+
+        await _viewModel.OptimizeMemoryAsync();
+    }
 }

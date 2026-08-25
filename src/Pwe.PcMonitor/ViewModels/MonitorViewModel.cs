@@ -19,6 +19,9 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     private SystemSnapshot _snapshot = new();
     private AppSettings _settings;
     private bool _isSampling;
+    private bool _memoryActionInProgress;
+
+    public string MemoryActionStatus { get; private set; } = string.Empty;
 
     public MonitorViewModel(AppSettingsService settingsService, bool enableEnhancedSensors = true)
     {
@@ -52,7 +55,13 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     public IReadOnlyList<double> GpuHistory => _gpuHistory.ToArray();
     public IReadOnlyList<double> PowerHistory => _powerHistory.ToArray();
 
-    public string MachineSummary => $"{Snapshot.MachineName} · {FormatBytes(Snapshot.MemoryTotal, oneDecimal: false)} · up {FormatUptime(Snapshot.Uptime)}";
+    public string MachineSummary => string.Join(" · ",
+        new[]
+        {
+            Snapshot.MachineName,
+            Snapshot.MemoryTotal > 0 ? FormatBytes(Snapshot.MemoryTotal, oneDecimal: false) : null,
+            $"up {FormatUptime(Snapshot.Uptime)}"
+        }.Where(item => !string.IsNullOrWhiteSpace(item)));
     public string SensorStatus => Snapshot.SensorStatus;
     public string CpuValue => $"{Snapshot.CpuUsage:0}%";
     public string CpuSub => JoinAvailable(FormatGhz(Snapshot.CpuClockMhz), FormatTemperature(Snapshot.CpuTemperatureMax ?? Snapshot.CpuTemperature));
@@ -113,6 +122,8 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     public bool HasGpuData => HasGpuUsage || HasGpuSub;
     public bool HasPowerData => CombinedPower is not null;
     public bool HasPowerSub => Snapshot.CpuPowerWatts is not null || Snapshot.GpuPowerWatts is not null;
+    public bool HasGpuOrPowerData => HasGpuData || HasPowerData;
+    public bool HasGpuAndPowerData => HasGpuData && HasPowerData;
     public bool HasThermalReadings => HasCpuAverageTemperature || HasCpuMaxTemperature || HasGpuTemperature || HasPositive(Snapshot.DiskTemperature) || HasPositive(Snapshot.MotherboardTemperature);
     public bool HasMotherboardTemperature => HasPositive(Snapshot.MotherboardTemperature);
     public bool HasDiskTemperature => HasPositive(Snapshot.DiskTemperature);
@@ -124,8 +135,14 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     public bool HasNetworkAddress => !string.IsNullOrWhiteSpace(Snapshot.IpAddress) && !Snapshot.IpAddress.Equals("—", StringComparison.Ordinal);
     public bool HasProcesses => Processes.Count > 0;
     public bool HasFans => Fans.Any(item => item.Rpm is >= 0 || item.Percent is >= 0);
+    public bool HasThermalOrMemoryData => HasThermalReadings || HasMemoryData;
+    public bool HasFansOrDiskData => HasFans || HasDiskData;
+    public bool HasBatteryOrNetworkData => HasBattery || HasNetworkData;
     public IReadOnlyList<string> SensorDiagnostics => BuildSensorDiagnostics();
     public bool HasSensorDiagnostics => SensorDiagnostics.Count > 0;
+    public bool IsMemoryActionInProgress => _memoryActionInProgress;
+    public bool CanOptimizeMemory => HasMemoryData && !_memoryActionInProgress;
+    public bool HasMemoryActionStatus => !string.IsNullOrWhiteSpace(MemoryActionStatus);
     public bool NeedsSensorAccess => Snapshot.SensorStatus.Contains("PawnIO", StringComparison.OrdinalIgnoreCase) ||
                                      Snapshot.SensorStatus.Contains("administrator", StringComparison.OrdinalIgnoreCase) ||
                                      Snapshot.TemperatureStatus.Contains("PawnIO", StringComparison.OrdinalIgnoreCase);
@@ -182,6 +199,39 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(SensorAccessHint));
     }
 
+    public async Task OptimizeMemoryAsync()
+    {
+        if (!CanOptimizeMemory || _memoryActionInProgress) return;
+
+        _memoryActionInProgress = true;
+        MemoryActionStatus = "Measuring eligible user processes…";
+        OnPropertyChanged(nameof(IsMemoryActionInProgress));
+        OnPropertyChanged(nameof(CanOptimizeMemory));
+        OnPropertyChanged(nameof(MemoryActionStatus));
+        OnPropertyChanged(nameof(HasMemoryActionStatus));
+
+        try
+        {
+            var result = await Task.Run(MemoryOptimizer.TrimCurrentUserSession);
+            MemoryActionStatus = result.TrimmedProcesses > 0
+                ? $"Trimmed {result.TrimmedProcesses} process{(result.TrimmedProcesses == 1 ? "" : "es")} · {FormatBytes((ulong)Math.Max(0, result.EstimatedBytesReleased))} working set released"
+                : "No eligible user-process working sets could be trimmed";
+        }
+        catch (Exception exception)
+        {
+            AppDiagnostics.Write("Memory optimization failed", exception);
+            MemoryActionStatus = "Memory optimization was unavailable";
+        }
+        finally
+        {
+            _memoryActionInProgress = false;
+            OnPropertyChanged(nameof(IsMemoryActionInProgress));
+            OnPropertyChanged(nameof(CanOptimizeMemory));
+            OnPropertyChanged(nameof(MemoryActionStatus));
+            OnPropertyChanged(nameof(HasMemoryActionStatus));
+        }
+    }
+
     private async Task SamplingLoopAsync(CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -234,6 +284,10 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(GpuHistory));
         OnPropertyChanged(nameof(PowerHistory));
         OnPropertyChanged(nameof(HasFans));
+        OnPropertyChanged(nameof(HasProcesses));
+        OnPropertyChanged(nameof(HasThermalOrMemoryData));
+        OnPropertyChanged(nameof(HasFansOrDiskData));
+        OnPropertyChanged(nameof(HasBatteryOrNetworkData));
         OnPropertyChanged(nameof(FanSummary));
         OnPropertyChanged(nameof(FanValue));
         OnPropertyChanged(nameof(FanSub));
@@ -254,9 +308,11 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
             nameof(GpuHealth), nameof(PowerHealth), nameof(MemoryHealth), nameof(DiskHealth), nameof(HasBattery),
             nameof(MotherboardTemperature), nameof(TemperatureStatus), nameof(SensorAccessHint), nameof(NeedsSensorAccess),
             nameof(FanValue), nameof(FanSub), nameof(HasCpuSub), nameof(HasCpuAverageTemperature), nameof(HasCpuMaxTemperature),
-            nameof(HasGpuUsage), nameof(HasGpuSub), nameof(HasGpuTemperature), nameof(HasGpuData), nameof(HasPowerData), nameof(HasPowerSub),
+            nameof(HasGpuUsage), nameof(HasGpuSub), nameof(HasGpuTemperature), nameof(HasGpuData), nameof(HasPowerData), nameof(HasPowerSub), nameof(HasGpuOrPowerData), nameof(HasGpuAndPowerData),
             nameof(HasThermalReadings), nameof(HasMotherboardTemperature), nameof(HasDiskTemperature), nameof(HasMemoryData), nameof(HasDiskData),
-            nameof(HasDiskRead), nameof(HasDiskWrite), nameof(HasNetworkData), nameof(HasNetworkAddress), nameof(HasProcesses), nameof(SensorDiagnostics), nameof(HasSensorDiagnostics)
+            nameof(HasDiskRead), nameof(HasDiskWrite), nameof(HasNetworkData), nameof(HasNetworkAddress), nameof(HasProcesses),
+            nameof(HasThermalOrMemoryData), nameof(HasFansOrDiskData), nameof(HasBatteryOrNetworkData), nameof(CanOptimizeMemory),
+            nameof(MemoryActionStatus), nameof(HasMemoryActionStatus), nameof(SensorDiagnostics), nameof(HasSensorDiagnostics)
         }) OnPropertyChanged(name);
     }
 

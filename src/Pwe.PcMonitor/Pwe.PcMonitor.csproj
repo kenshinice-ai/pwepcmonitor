@@ -9,7 +9,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>PwePcMonitor</AssemblyName>
     <RootNamespace>Pwe.PcMonitor</RootNamespace>
-    <Version>0.5.0</Version>
+    <Version>0.6.0</Version>
     <Authors>PWE Group Pty Ltd</Authors>
     <Company>PWE Group Pty Ltd</Company>
     <Product>PWE PC MONITOR</Product>

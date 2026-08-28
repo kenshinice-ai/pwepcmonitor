@@ -72,6 +72,20 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     public string PowerSub => JoinAvailable(
         Snapshot.CpuPowerWatts is double cpu ? $"CPU {FormatWatts(cpu)}" : null,
         Snapshot.GpuPowerWatts is double gpu ? $"GPU {FormatWatts(gpu)}" : null);
+    public string CompactSecondaryLabel => HasGpuData ? "GPU" : HasBattery ? "BAT" : HasPowerData ? "POWER" : string.Empty;
+    public string CompactSecondaryValue => HasGpuData
+        ? HasGpuUsage ? GpuValue : GpuSub
+        : HasBattery ? BatteryValue
+        : HasPowerData ? PowerValue
+        : string.Empty;
+    public string CompactSecondarySub => HasGpuData
+        ? HasGpuUsage && HasGpuSub ? GpuSub : string.Empty
+        : HasBattery ? BatteryState
+        : HasPowerData && HasPowerSub ? PowerSub
+        : string.Empty;
+    public HealthState CompactSecondaryHealth => HasGpuData ? GpuHealth : HasPowerData ? PowerHealth : HealthState.Calm;
+    public bool HasCompactSecondary => HasGpuData || HasBattery || HasPowerData;
+    public bool HasCompactSecondarySub => !string.IsNullOrWhiteSpace(CompactSecondarySub) && CompactSecondarySub != "—";
     public string CpuAverageTemperature => FormatTemperatureDetailed(Snapshot.CpuTemperature);
     public string CpuMaxTemperature => FormatTemperatureDetailed(Snapshot.CpuTemperatureMax);
     public string GpuTemperature => FormatTemperatureDetailed(Snapshot.GpuTemperature);
@@ -301,7 +315,7 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         foreach (var name in new[]
         {
             nameof(MachineSummary), nameof(SensorStatus), nameof(CpuValue), nameof(CpuSub), nameof(GpuValue), nameof(GpuSub),
-            nameof(CombinedPower), nameof(PowerValue), nameof(PowerSub), nameof(CpuAverageTemperature), nameof(CpuMaxTemperature),
+            nameof(CombinedPower), nameof(PowerValue), nameof(PowerSub), nameof(CompactSecondaryLabel), nameof(CompactSecondaryValue), nameof(CompactSecondarySub), nameof(CompactSecondaryHealth), nameof(HasCompactSecondary), nameof(HasCompactSecondarySub), nameof(CpuAverageTemperature), nameof(CpuMaxTemperature),
             nameof(GpuTemperature), nameof(GpuTemperatureSource), nameof(HasGpuTemperatureSource), nameof(DiskTemperature), nameof(MemoryValue), nameof(MemoryTotal), nameof(MemoryAvailable),
             nameof(MemoryPressure), nameof(DiskValue), nameof(DiskTotal), nameof(DiskRead), nameof(DiskWrite), nameof(NetworkDown),
             nameof(NetworkUp), nameof(BatteryValue), nameof(BatteryState), nameof(OverallLabel), nameof(OverallHealth), nameof(CpuHealth),

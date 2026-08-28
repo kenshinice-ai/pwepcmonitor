@@ -4,7 +4,7 @@
 
 **A calm Windows hardware monitor from Paradise Production.**
 
-Current public build: **0.7.0**
+Current public build: **0.7.1**
 
 </div>
 
@@ -33,6 +33,14 @@ PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing ma
 - Explicit **Get PawnIO** and **Recheck sensors** actions are available from the dashboard, Settings menu and tray menu.
 - PawnIO is optional: without it, the app stays in native sensor mode and does not probe protected motherboard controller registers.
 - Empty or unsupported values are hidden from the dashboard and floating widget. Their sensor diagnostics remain available from Settings and the tray menu.
+
+## Interface preview
+
+The always-on widget stays compact for a quick glance: vector glyphs carry the CPU, memory and GPU/power/battery values without repeating labels. Rest the pointer on it to open a calm detail panel where each readable channel, including SSD capacity, returns with its icon and full text label. The panel reflows around readable channels, while unsupported fields stay out of the way and remain available in Settings diagnostics.
+
+![PWE PC MONITOR compact bar and hover detail preview](docs/readme-floating-widget.svg)
+
+<sub>Static vector preview for README documentation; the values shown are illustrative, not a captured live reading.</sub>
 
 ## Requirements
 

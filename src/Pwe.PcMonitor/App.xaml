@@ -20,6 +20,16 @@
         <FontFamily x:Key="UiFont">pack://application:,,,/Resources/Fonts/#Inter</FontFamily>
         <FontFamily x:Key="BrandFont">pack://application:,,,/Resources/Fonts/#Playfair Display</FontFamily>
 
+        <!-- Small SVG-style paths kept as WPF geometry so the widget stays
+             dependency-free while the compact view can use icon-only labels. -->
+        <Geometry x:Key="CpuIconGeometry">M7 7H17V17H7ZM10 10H14V14H10ZM4 9H7M4 12H7M4 15H7M17 9H20M17 12H20M17 15H20M9 4V7M12 4V7M15 4V7M9 17V20M12 17V20M15 17V20</Geometry>
+        <Geometry x:Key="MemoryIconGeometry">M5 6H19V18H5ZM8 9H16V11H8ZM8 13H16V15H8M8 4V6M12 4V6M16 4V6M8 18V20M12 18V20M16 18V20</Geometry>
+        <Geometry x:Key="GpuIconGeometry">M4 7H20L17 17H7ZM8 11H16M9 14H15</Geometry>
+        <Geometry x:Key="PowerIconGeometry">M12 3V11M8 5.2A8 8 0 1 0 16 5.2</Geometry>
+        <Geometry x:Key="FanIconGeometry">M12 9.5C9 7 7 8 8.1 10.3C9.4 12.8 11.2 11.9 12 9.5M14.5 12C17 9 16 7 13.7 8.1C11.2 9.4 12.1 11.2 14.5 12M12 14.5C15 17 17 16 15.9 13.7C14.6 11.2 12.8 12.1 12 14.5M12 10A2 2 0 1 0 12 14A2 2 0 1 0 12 10</Geometry>
+        <Geometry x:Key="BatteryIconGeometry">M4 7H20V17H4ZM20 10H22V14H20M8 10V14H16V10</Geometry>
+        <Geometry x:Key="StorageIconGeometry">M5 4H19A2 2 0 0 1 21 6V18A2 2 0 0 1 19 20H5A2 2 0 0 1 3 18V6A2 2 0 0 1 5 4ZM7 8H17M7 12H17M7 16H12</Geometry>
+
         <converters:HealthToBrushConverter x:Key="HealthBrush" />
         <converters:HealthToBadgeBrushConverter x:Key="HealthBadgeBrush" />
         <converters:BooleanToVisibilityConverter x:Key="BoolVisibility" />
@@ -89,6 +99,27 @@
         <Style x:Key="MutedTextStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
             <Setter Property="FontSize" Value="11" />
+        </Style>
+
+        <Style x:Key="CompactIconStyle" TargetType="Path">
+            <Setter Property="Width" Value="13" />
+            <Setter Property="Height" Value="13" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Stroke" Value="{DynamicResource MutedBrush}" />
+            <Setter Property="StrokeThickness" Value="1.5" />
+            <Setter Property="StrokeStartLineCap" Value="Round" />
+            <Setter Property="StrokeEndLineCap" Value="Round" />
+            <Setter Property="StrokeLineJoin" Value="Round" />
+            <Setter Property="Fill" Value="Transparent" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="DetailIconStyle" TargetType="Path" BasedOn="{StaticResource CompactIconStyle}">
+            <Setter Property="Width" Value="15" />
+            <Setter Property="Height" Value="15" />
+            <Setter Property="Margin" Value="0,0,5,0" />
+            <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="StrokeThickness" Value="1.45" />
         </Style>
 
         <Style x:Key="SmallButtonStyle" TargetType="Button">

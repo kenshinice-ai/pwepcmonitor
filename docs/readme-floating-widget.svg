@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
+  <title id="title">PWE PC MONITOR compact widget and hover detail preview</title>
+  <desc id="desc">A static vector preview of the compact always-on-top bar and the readable-metrics detail panel.</desc>
+
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#091323" />
+      <stop offset="0.55" stop-color="#111E32" />
+      <stop offset="1" stop-color="#192941" />
+    </linearGradient>
+    <linearGradient id="compactSurface" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#213652" stop-opacity="0.94" />
+      <stop offset="1" stop-color="#142239" stop-opacity="0.9" />
+    </linearGradient>
+    <linearGradient id="detailSurface" x1="0" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#233855" stop-opacity="0.95" />
+      <stop offset="1" stop-color="#132139" stop-opacity="0.92" />
+    </linearGradient>
+    <linearGradient id="meter" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#F5B335" />
+      <stop offset="1" stop-color="#FFD76A" />
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="26" />
+    </filter>
+    <g id="wing">
+      <path d="M12 258 C168 224 318 151 489 5 C358 157 236 225 121 272 C283 234 419 194 582 108 C437 221 270 275 130 300 C282 285 420 270 626 220 C447 307 265 324 132 325 C266 333 386 356 540 399 C337 380 170 360 34 330 L12 258 Z" fill="#F5B335" />
+    </g>
+    <g id="cpuIcon" fill="none" stroke="#F5B335" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 7h10v10H7zM10 10h4v4h-4zM4 9h3M4 12h3M4 15h3M17 9h3M17 12h3M17 15h3M9 4v3M12 4v3M15 4v3M9 17v3M12 17v3M15 17v3" />
+    </g>
+    <g id="memoryIcon" fill="none" stroke="#F5B335" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 6h14v12H5zM8 9h8v2H8zM8 13h8v2H8zM8 4v2M12 4v2M16 4v2M8 18v2M12 18v2M16 18v2" />
+    </g>
+    <g id="gpuIcon" fill="none" stroke="#F5B335" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 7h16l-3 10H7zM8 11h8M9 14h6" />
+    </g>
+    <g id="powerIcon" fill="none" stroke="#F5B335" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3v8M8 5.2a8 8 0 1 0 8 0" />
+    </g>
+    <g id="fanIcon" fill="none" stroke="#F5B335" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 9.5C9 7 7 8 8.1 10.3c1.3 2.5 3.1 1.6 3.9-.8M14.5 12c2.5-3 1.5-5-0.8-3.9-2.5 1.3-1.6 3.1.8 3.9M12 14.5c3 2.5 5 1.5 3.9-.8-1.3-2.5-3.1-1.6-3.9.8M12 10a2 2 0 1 0 0 4 2 2 0 1 0 0-4" />
+    </g>
+    <g id="batteryIcon" fill="none" stroke="#F5B335" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 7h16v10H4zM20 10h2v4h-2M8 10v4h8v-4" />
+    </g>
+    <g id="storageIcon" fill="none" stroke="#F5B335" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM7 8h10M7 12h10M7 16h5" />
+    </g>
+    <style>
+      .eyebrow { font: 600 14px Inter, "Segoe UI", sans-serif; letter-spacing: 2px; fill: #9AA8BB; }
+      .title { font: 700 28px Inter, "Segoe UI", sans-serif; letter-spacing: .5px; fill: #F7F5F2; }
+      .body { font: 500 16px Inter, "Segoe UI", sans-serif; fill: #C9D1DC; }
+      .label { font: 700 12px Inter, "Segoe UI", sans-serif; letter-spacing: 1.5px; fill: #9AA8BB; }
+      .value { font: 650 28px Inter, "Segoe UI", sans-serif; fill: #F7F5F2; }
+      .smallValue { font: 600 15px Inter, "Segoe UI", sans-serif; fill: #F7F5F2; }
+      .muted { font: 500 12px Inter, "Segoe UI", sans-serif; fill: #8997AA; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="760" fill="url(#background)" />
+  <circle cx="1080" cy="80" r="170" fill="#F5B335" opacity="0.08" filter="url(#softGlow)" />
+  <circle cx="175" cy="670" r="180" fill="#2D6B9E" opacity="0.12" filter="url(#softGlow)" />
+
+  <text x="64" y="70" class="eyebrow">PWE PC MONITOR · 0.7.1</text>
+  <text x="64" y="108" class="title">A calm glance, with detail on demand.</text>
+  <text x="1216" y="72" text-anchor="end" class="muted">STATIC VECTOR PREVIEW</text>
+
+  <!-- Compact state -->
+  <text x="64" y="160" class="eyebrow">DEFAULT · COMPACT BAR</text>
+  <rect x="64" y="184" width="530" height="174" rx="26" fill="#07101E" opacity="0.35" />
+  <rect x="64" y="174" width="530" height="174" rx="26" fill="url(#compactSurface)" stroke="#3C526E" stroke-width="1.5" />
+  <rect x="88" y="204" width="44" height="44" rx="13" fill="#3A2E1E" />
+  <use href="#wing" transform="translate(94 210) scale(.033)" />
+  <text x="149" y="221" class="smallValue">PWE-VAIO-Z</text>
+  <text x="149" y="242" class="muted">up 10d 8h · CALM</text>
+
+  <line x1="149" y1="260" x2="560" y2="260" stroke="#3D5069" stroke-width="1" />
+  <use href="#cpuIcon" transform="translate(146 269) scale(.72)" opacity=".9" />
+  <text x="171" y="314" class="value">7%</text>
+  <use href="#memoryIcon" transform="translate(282 269) scale(.72)" opacity=".9" />
+  <text x="307" y="314" class="value">73%</text>
+  <use href="#gpuIcon" transform="translate(418 269) scale(.72)" opacity=".9" />
+  <text x="443" y="314" class="value">1%</text>
+  <rect x="536" y="291" width="36" height="36" rx="11" fill="#3A2E1E" stroke="#805E25" />
+  <text x="554" y="316" text-anchor="middle" font-size="19" font-family="Inter, Segoe UI, sans-serif" fill="#F5B335">✦</text>
+
+  <!-- Hover connector -->
+  <path d="M610 265 C634 265 642 265 661 265" fill="none" stroke="#F5B335" stroke-width="2" stroke-dasharray="5 6" opacity="0.8" />
+  <circle cx="614" cy="265" r="4" fill="#F5B335" />
+  <text x="634" y="245" text-anchor="middle" class="muted">hover</text>
+
+  <!-- Detail state -->
+  <text x="680" y="160" class="eyebrow">HOVER · READABLE DETAILS</text>
+  <rect x="680" y="174" width="536" height="508" rx="26" fill="#07101E" opacity="0.35" />
+  <rect x="680" y="164" width="536" height="508" rx="26" fill="url(#detailSurface)" stroke="#3C526E" stroke-width="1.5" />
+  <rect x="706" y="192" width="44" height="44" rx="13" fill="#3A2E1E" />
+  <use href="#wing" transform="translate(712 198) scale(.033)" />
+  <text x="767" y="208" class="smallValue">PWE-VAIO-Z · 8 GB</text>
+  <text x="767" y="229" class="muted">Intel Core i7-6567U</text>
+  <rect x="1119" y="201" width="71" height="25" rx="12.5" fill="#3A2E1E" stroke="#805E25" />
+  <circle cx="1134" cy="213.5" r="4" fill="#F5B335" />
+  <text x="1144" y="218" class="label" fill="#F5B335">CALM</text>
+
+  <line x1="706" y1="252" x2="1190" y2="252" stroke="#3D5069" stroke-width="1" />
+
+  <rect x="706" y="276" width="232" height="82" rx="14" fill="#20334D" opacity="0.86" />
+  <use href="#cpuIcon" transform="translate(720 282) scale(.68)" />
+  <text x="744" y="299" class="label">CPU</text>
+  <text x="724" y="333" class="value">7%</text>
+  <text x="830" y="301" class="muted">2.31 GHz</text>
+  <text x="830" y="324" class="muted">63°C</text>
+
+  <rect x="954" y="276" width="232" height="82" rx="14" fill="#20334D" opacity="0.86" />
+  <use href="#gpuIcon" transform="translate(968 282) scale(.68)" />
+  <text x="992" y="299" class="label">GPU</text>
+  <text x="972" y="333" class="value">1%</text>
+  <text x="1078" y="301" class="muted">Intel IGCL</text>
+  <text x="1078" y="324" class="muted">0.42 GHz</text>
+
+  <rect x="706" y="374" width="232" height="82" rx="14" fill="#20334D" opacity="0.86" />
+  <use href="#memoryIcon" transform="translate(720 380) scale(.68)" />
+  <text x="744" y="397" class="label">MEMORY</text>
+  <text x="724" y="431" class="value">73%</text>
+  <text x="830" y="399" class="muted">7.0 GB used</text>
+  <text x="830" y="422" class="muted">1.4 GB available</text>
+
+  <rect x="954" y="374" width="232" height="82" rx="14" fill="#20334D" opacity="0.86" />
+  <use href="#powerIcon" transform="translate(968 380) scale(.68)" />
+  <text x="992" y="397" class="label">POWER</text>
+  <text x="972" y="431" class="value">1.7 W</text>
+  <text x="1078" y="399" class="muted">CPU 1.7 W</text>
+  <text x="1078" y="422" class="muted">package channel</text>
+
+  <rect x="706" y="472" width="232" height="82" rx="14" fill="#20334D" opacity="0.86" />
+  <use href="#batteryIcon" transform="translate(720 478) scale(.68)" />
+  <text x="744" y="495" class="label">BATTERY</text>
+  <text x="724" y="529" class="value">100%</text>
+  <text x="830" y="497" class="muted">on power</text>
+  <text x="830" y="520" class="muted">readable channel</text>
+
+  <rect x="954" y="472" width="232" height="82" rx="14" fill="#20334D" opacity="0.86" />
+  <text x="972" y="495" class="label">MEMORY ACTION</text>
+  <rect x="972" y="508" width="122" height="29" rx="9" fill="#3A2E1E" stroke="#805E25" />
+  <text x="983" y="528" class="smallValue" fill="#F5B335">✦  Optimize</text>
+  <text x="1108" y="528" class="muted">Ctrl+Shift+M</text>
+
+  <line x1="706" y1="584" x2="1190" y2="584" stroke="#3D5069" stroke-width="1" />
+  <text x="706" y="614" class="muted">Unavailable fields are omitted; diagnostics remain in Settings.</text>
+  <text x="706" y="640" class="muted">The panel reflows around the channels this machine exposes.</text>
+
+  <text x="64" y="724" class="muted">Illustrative values only · the shipped app reads live Windows and driver telemetry.</text>
+</svg>

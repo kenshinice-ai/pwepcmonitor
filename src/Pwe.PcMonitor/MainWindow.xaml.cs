@@ -181,7 +181,7 @@ public partial class MainWindow : Window
         if (!_viewModel.CanOptimizeMemory) return;
 
         var answer = MessageBox.Show(
-            "PWE will trim eligible user-process working sets without closing processes. Windows may page those apps back in later, so this is not a guaranteed permanent increase in free memory. Continue?",
+            "PWE will trim eligible large working sets in this session, excluding the current and previous foreground apps. No processes are closed. Windows may page those apps back in later; the reported reduction is an estimate, not guaranteed free memory. Continue?",
             "Optimize memory",
             MessageBoxButton.YesNo,
             MessageBoxImage.Information,

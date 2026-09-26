@@ -45,13 +45,20 @@ public sealed class Sparkline : FrameworkElement
         var points = new StreamGeometry();
         using (var context = points.Open())
         {
+            var needsStart = true;
             for (var index = 0; index < Values.Count; index++)
             {
+                if (!double.IsFinite(Values[index]))
+                {
+                    needsStart = true;
+                    continue;
+                }
                 var x = ActualWidth * index / Math.Max(1, Values.Count - 1);
                 var normalized = Math.Clamp(Values[index] / Math.Max(0.001, Ceiling), 0, 1);
                 var y = ActualHeight - normalized * (ActualHeight - 2) - 1;
-                if (index == 0) context.BeginFigure(new Point(x, y), false, false);
+                if (needsStart) context.BeginFigure(new Point(x, y), false, false);
                 else context.LineTo(new Point(x, y), true, false);
+                needsStart = false;
             }
         }
         points.Freeze();

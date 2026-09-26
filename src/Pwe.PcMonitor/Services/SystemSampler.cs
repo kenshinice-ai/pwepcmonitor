@@ -50,12 +50,11 @@ public sealed class SystemSampler : IDisposable
                 GpuPowerWatts = hardware.GpuPowerWatts,
                 MemoryTotal = basic.MemoryTotal,
                 MemoryAvailable = basic.MemoryAvailable,
-                DiskName = hardware.StorageName ?? basic.DiskName,
+                DiskName = basic.DiskName,
                 DiskTotal = basic.DiskTotal,
                 DiskFree = basic.DiskFree,
-                DiskReadBytesPerSecond = hardware.DiskReadBytesPerSecond,
-                DiskWriteBytesPerSecond = hardware.DiskWriteBytesPerSecond,
-                DiskTemperature = hardware.DiskTemperature,
+                // LHM physical disks are not reliably mapped to the system volume.
+                // Keep their readings in diagnostics rather than mix device identities.
                 MotherboardTemperature = hardware.MotherboardTemperature,
                 MotherboardTemperatureMax = hardware.MotherboardTemperatureMax,
                 NetworkName = basic.NetworkName,
@@ -111,27 +110,21 @@ public sealed class SystemSampler : IDisposable
             var cpuTemps = new List<double>();
             var cpuClocks = new List<double>();
             var cpuPowers = new List<double>();
-            var gpuTemps = new List<double>();
             var gpuTemperatureReadings = new List<GpuTemperatureReading>();
             var gpuVendors = new HashSet<GpuVendor>();
             var gpuPowers = new List<double>();
             var gpuLoads = new List<double>();
             var gpuClocks = new List<double>();
-            var diskTemps = new List<double>();
             var motherboardTemps = new List<double>();
             double? cpuTotal = null;
-            double? diskRead = null;
-            double? diskWrite = null;
             string? processorName = null;
             string? gpuName = null;
-            string? storageName = null;
 
             foreach (var hardware in allHardware)
             {
                 var hardwareType = hardware.HardwareType.ToString();
                 var isCpu = hardwareType.Equals("Cpu", StringComparison.OrdinalIgnoreCase);
                 var isGpu = IsGpuHardware(hardware);
-                var isStorage = hardwareType.Equals("Storage", StringComparison.OrdinalIgnoreCase);
                 var isMotherboard = IsMotherboardHardware(hardwareType);
                 if (isCpu) processorName ??= hardware.Name;
                 if (isGpu)
@@ -140,16 +133,16 @@ public sealed class SystemSampler : IDisposable
                     var vendor = GpuTemperatureProvider.Detect(hardware);
                     if (vendor != GpuVendor.Unknown) gpuVendors.Add(vendor);
                 }
-                if (isStorage) storageName ??= hardware.Name;
 
                 foreach (var sensor in hardware.Sensors)
                 {
-                    if (sensor.Value is not float raw || float.IsNaN(raw)) continue;
+                    if (sensor.Value is not float raw || !float.IsFinite(raw)) continue;
                     var value = (double)raw;
                     var type = sensor.SensorType.ToString();
                     var name = sensor.Name;
                     var unit = UnitFor(type);
                     sensors.Add(new SensorReading(hardware.Name, name, type, value, unit));
+                    if (type == "Temperature" && value is <= -20 or >= 150) continue;
 
                     if (type == "Fan")
                     {
@@ -166,14 +159,13 @@ public sealed class SystemSampler : IDisposable
                         if (isCpu || IsCpuTemperatureSensor(hardware, name)) cpuTemps.Add(value);
                         if (isGpu || IsGpuTemperatureSensor(hardware, name))
                         {
-                            gpuTemps.Add(value);
                             gpuTemperatureReadings.Add(new(
                                 isGpu ? GpuTemperatureProvider.Detect(hardware) : GpuVendor.Unknown,
                                 hardware.Name,
                                 name,
-                                value));
+                                value,
+                                hardware.Identifier.ToString()));
                         }
-                        if (isStorage) diskTemps.Add(value);
                         if (isMotherboard) motherboardTemps.Add(value);
                     }
                     else if (isCpu && type == "Clock" && value > 0)
@@ -207,11 +199,6 @@ public sealed class SystemSampler : IDisposable
                     {
                         gpuClocks.Add(value);
                     }
-                    else if (isStorage && type == "Throughput")
-                    {
-                        if (name.Contains("Read", StringComparison.OrdinalIgnoreCase)) diskRead = value;
-                        if (name.Contains("Write", StringComparison.OrdinalIgnoreCase)) diskWrite = value;
-                    }
                 }
             }
 
@@ -232,12 +219,12 @@ public sealed class SystemSampler : IDisposable
                 motherboardTemps.Count > 0,
                 fans.Values.Any(item => item.Rpm is > 0),
                 cpuTemps.Count > 0,
-                gpuTemps.Count > 0);
+                gpuTemperature.Temperature is not null);
+            var gpuCount = allHardware.Count(IsGpuHardware);
             return new HardwareMetrics
             {
                 ProcessorName = processorName,
-                GpuName = gpuName,
-                StorageName = storageName,
+                GpuName = gpuCount > 1 ? $"{gpuCount} GPUs · aggregate" : gpuName,
                 CpuUsage = cpuTotal,
                 CpuClockMhz = Average(cpuClocks),
                 CpuTemperature = PreferNamedTemperature(allHardware, isCpu: true) ?? Average(cpuTemps),
@@ -245,15 +232,14 @@ public sealed class SystemSampler : IDisposable
                 CpuPowerWatts = SumOrNull(cpuPowers),
                 GpuUsage = Max(gpuLoads),
                 GpuClockMhz = Max(gpuClocks),
-                GpuTemperature = gpuTemperature.Temperature ?? Max(gpuTemps),
-                GpuTemperatureSource = gpuTemperature.Source,
+                GpuTemperature = gpuTemperature.Temperature,
+                GpuTemperatureSource = gpuCount > 1
+                    ? $"{gpuTemperature.Source} · hottest core; load/clock maxima; power total"
+                    : gpuTemperature.Source,
                 GpuPowerWatts = SumOrNull(gpuPowers),
-                DiskTemperature = Max(diskTemps),
                 MotherboardTemperature = Average(motherboardTemps),
                 MotherboardTemperatureMax = Max(motherboardTemps),
                 TemperatureStatus = BuildTemperatureStatus(cpuTemps.Count > 0, gpuTemperature.Temperature is not null, gpuTemperature.Source),
-                DiskReadBytesPerSecond = diskRead,
-                DiskWriteBytesPerSecond = diskWrite,
                 Cores = cores.Take(32).ToArray(),
                 Fans = fans.Values.OrderBy(item => item.Name).ToArray(),
                 Sensors = sensors.OrderBy(item => item.Group).ThenBy(item => item.Type).ThenBy(item => item.Name).ToArray()
@@ -457,6 +443,7 @@ public sealed class SystemSampler : IDisposable
         var candidate = hardware
             .SelectMany(item => item.Sensors.Select(sensor => (Hardware: item, Sensor: sensor)))
             .FirstOrDefault(item => item.Sensor.SensorType.ToString() == "Temperature" &&
+                item.Sensor.Value is > -20 and < 150 &&
                 (isCpu
                     ? IsCpuTemperatureSensor(item.Hardware, item.Sensor.Name) &&
                       (item.Sensor.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) ||
@@ -514,7 +501,6 @@ public sealed class SystemSampler : IDisposable
     {
         public string? ProcessorName { get; init; }
         public string? GpuName { get; init; }
-        public string? StorageName { get; init; }
         public double? CpuUsage { get; init; }
         public double? CpuClockMhz { get; init; }
         public double? CpuTemperature { get; init; }
@@ -525,12 +511,9 @@ public sealed class SystemSampler : IDisposable
         public double? GpuTemperature { get; init; }
         public string GpuTemperatureSource { get; init; } = "GPU provider not detected";
         public double? GpuPowerWatts { get; init; }
-        public double? DiskTemperature { get; init; }
         public double? MotherboardTemperature { get; init; }
         public double? MotherboardTemperatureMax { get; init; }
         public string TemperatureStatus { get; init; } = "Temperature channels unavailable";
-        public double? DiskReadBytesPerSecond { get; init; }
-        public double? DiskWriteBytesPerSecond { get; init; }
         public IReadOnlyList<CoreReading> Cores { get; init; } = [];
         public IReadOnlyList<FanReading> Fans { get; init; } = [];
         public IReadOnlyList<SensorReading> Sensors { get; init; } = [];

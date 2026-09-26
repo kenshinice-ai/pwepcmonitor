@@ -24,6 +24,7 @@ if (Test-Path -LiteralPath $checksum) {
 }
 
 dotnet restore $project --runtime $Runtime
+if ($LASTEXITCODE -ne 0) { throw "Restore failed" }
 dotnet publish $project `
     --configuration Release `
     --runtime $Runtime `
@@ -33,6 +34,7 @@ dotnet publish $project `
     -p:PublishSingleFile=false `
     -p:DebugType=None `
     -p:DebugSymbols=false
+if ($LASTEXITCODE -ne 0) { throw "Publish failed" }
 
 Compress-Archive -Path (Join-Path $output "*") -DestinationPath $zip -CompressionLevel Optimal
 $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()

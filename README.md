@@ -4,7 +4,7 @@
 
 **A calm Windows hardware monitor from Paradise Production.**
 
-Current public build: **0.7.2**
+Current release version: **0.8.0**
 
 </div>
 
@@ -19,7 +19,7 @@ PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing ma
 - GPU usage, frequency, temperature and power when available.
 - Vendor-aware GPU temperature sources: NVIDIA NVAPI, AMD ADL and Intel IGCL through the installed graphics driver, with the selected provider retained in sensor diagnostics.
 - Memory, system drive capacity, network throughput/address, battery and top processes.
-- Explicit **Optimize memory** action trims eligible large user-process working sets without terminating processes; the result reports the estimated working-set delta and may not permanently increase free RAM.
+- Explicit **Optimize memory** action trims eligible large same-session process working sets without terminating processes. Current and previous foreground applications are excluded, process creation time is rechecked, and the result reports an estimated working-set delta rather than guaranteed free RAM.
 - Read-only fan RPM display. **There is no fan-control or hardware-write path.**
 - 89-sample CPU, GPU and power history.
 - System, dark and light themes using the PWE brand palette.
@@ -27,12 +27,16 @@ PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing ma
 - Optional full sensor list.
 - Launch-at-login setting stored for the current Windows user.
 - Graceful fallback to basic Windows metrics if enhanced hardware sensors are unavailable.
-- Motherboard temperature and fan channels are attempted even when PawnIO is not installed; unsupported or protected channels are recorded in Sensor diagnostics instead of being treated as zero.
+- Unsupported or protected motherboard temperature and fan channels are recorded in Sensor diagnostics instead of being treated as zero.
 - CPU/GPU temperature diagnostics distinguish missing PawnIO, missing elevation and channels that the hardware/driver does not expose.
 - GPU temperature selection prefers the vendor's core/edge channel instead of accidentally showing a memory-junction or hotspot value as the main GPU temperature. Hotspot and memory channels remain available in the full sensor list.
 - Explicit **Get PawnIO** and **Recheck sensors** actions are available from the dashboard, Settings menu and tray menu.
 - PawnIO is optional: without it, the app stays in native sensor mode and does not probe protected motherboard controller registers.
 - Empty or unsupported values are hidden from the dashboard and floating widget. Their sensor diagnostics remain available from Settings and the tray menu.
+- System-drive capacity is labelled by volume. Physical-disk temperature and throughput are retained in **All Sensors**, not combined with the system volume without a verified device mapping.
+- CPU/network counters warm up before displaying rates. Missing samples create history gaps instead of false zero readings; network switching resets the adapter baseline.
+
+In the focused floating widget, **F2** opens details, **Escape** closes details, and **Ctrl+Shift+M** requests memory optimization. These are window-level, not global shortcuts. Details retain keyboard focus and memory-operation completion feedback stays available for at least four seconds unless explicitly dismissed. Disabling the widget closes its details and background memory actions cannot reopen it.
 
 ## Interface preview
 
@@ -131,7 +135,9 @@ CPU/GPU temperature defaults are warm at 75 °C and hot at 92 °C. Storage tempe
 
 ## Verification boundary
 
-The solution can be compiled from macOS with Windows targeting enabled. The GitHub Actions workflow performs the authoritative Windows build and launches the published EXE in a five-second safe-mode smoke test. The notification-area UI, Windows APIs, enhanced sensor access, sleep/resume behaviour and hardware compatibility still need verification on real Windows PCs.
+The solution can be compiled from macOS with Windows targeting enabled. Run `dotnet run --project tests/Pwe.Regression -c Release` for counter, temperature and missing-value checks. On Windows, also run `dotnet run --project tests/Pwe.WindowsRegression -c Release` for view-model and hidden-popup checks.
+
+GitHub Actions builds and packages Windows x64, runs both suites, and launches the published EXE in safe/enhanced sampler smoke modes. Success requires initialization, valid CPU/memory sampling, resource disposal and exit code zero; a 60-second timeout fails the check. Smoke mode does not show a desktop window. Mixed-DPI interaction, visual accessibility, foreground memory protection, sleep/resume and physical GPU/driver combinations still require real-PC validation. See [the v0.8.0 execution report](docs/release-v0.8.0.md).
 
 ## Licences and brand
 

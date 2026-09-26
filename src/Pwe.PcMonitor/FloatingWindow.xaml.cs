@@ -21,6 +21,7 @@ public partial class FloatingWindow : Window
     private bool _compactPointerOver;
     private bool _detailPointerOver;
     private bool _detailOpen;
+    private DateTimeOffset _resultVisibleUntil;
 
     public FloatingWindow(MonitorViewModel viewModel)
     {
@@ -36,6 +37,7 @@ public partial class FloatingWindow : Window
         _collapseTimer = new DispatcherTimer { Interval = CollapseDelay };
         _collapseTimer.Tick += CollapseTimer_Tick;
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        DetailSurface.LostKeyboardFocus += (_, _) => ScheduleCollapse();
     }
 
     public void ShowWidget()
@@ -52,6 +54,16 @@ public partial class FloatingWindow : Window
         DetailPopup.IsOpen = false;
     }
 
+    public void HideWidget()
+    {
+        StopHoverTimers();
+        SetDetailOpen(false);
+        _compactPointerOver = false;
+        _detailPointerOver = false;
+        _resultVisibleUntil = default;
+        Hide();
+    }
+
     private void Window_Closing(object? sender, CancelEventArgs e)
     {
         StopHoverTimers();
@@ -63,7 +75,7 @@ public partial class FloatingWindow : Window
         }
 
         e.Cancel = true;
-        Hide();
+        HideWidget();
     }
 
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -110,7 +122,12 @@ public partial class FloatingWindow : Window
     private void CollapseTimer_Tick(object? sender, EventArgs e)
     {
         _collapseTimer.Stop();
-        if (!_compactPointerOver && !_detailPointerOver && !_viewModel.IsMemoryActionInProgress)
+        if (DateTimeOffset.UtcNow < _resultVisibleUntil)
+        {
+            ScheduleCollapse();
+            return;
+        }
+        if (!_compactPointerOver && !_detailPointerOver && !DetailSurface.IsKeyboardFocusWithin && !_viewModel.IsMemoryActionInProgress)
             SetDetailOpen(false);
     }
 
@@ -127,6 +144,7 @@ public partial class FloatingWindow : Window
     {
         if (open)
         {
+            if (!IsVisible || !_viewModel.ShowFloatingWidget || _allowClose) return;
             _collapseTimer.Stop();
             _detailOpen = true;
             DetailPopup.IsOpen = true;
@@ -157,7 +175,7 @@ public partial class FloatingWindow : Window
     private void CloseWidget_Click(object sender, RoutedEventArgs e)
     {
         SetDetailOpen(false);
-        Hide();
+        HideWidget();
         if (_viewModel.ShowFloatingWidget) _viewModel.ToggleFloatingWidget();
     }
 
@@ -173,6 +191,20 @@ public partial class FloatingWindow : Window
 
     private async Task TryOptimizeMemoryShortcutAsync(KeyEventArgs e)
     {
+        if (e.Key == Key.Escape && _detailOpen)
+        {
+            e.Handled = true;
+            SetDetailOpen(false);
+            Focus();
+            return;
+        }
+        if (e.Key == Key.F2)
+        {
+            e.Handled = true;
+            SetDetailOpen(true);
+            DetailSurface.MoveFocus(new TraversalRequest(FocusNavigationDirection.First));
+            return;
+        }
         var memoryShortcut = ModifierKeys.Control | ModifierKeys.Shift;
         if (e.Key != Key.M || (Keyboard.Modifiers & memoryShortcut) != memoryShortcut || !_viewModel.CanOptimizeMemory)
             return;
@@ -192,6 +224,7 @@ public partial class FloatingWindow : Window
             return;
         }
 
+        if (_detailOpen) _resultVisibleUntil = DateTimeOffset.UtcNow.AddSeconds(4);
         ScheduleCollapse();
     }
 

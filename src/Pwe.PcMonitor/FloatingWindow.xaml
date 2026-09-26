@@ -54,7 +54,7 @@
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
                         Margin="9,0,4,0">
-                <Grid Width="52" Margin="0,0,2,0" ToolTip="CPU">
+                <Grid Width="52" Margin="0,0,2,0" ToolTip="CPU" Visibility="{Binding HasCpuUsage, Converter={StaticResource BoolVisibility}}">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Path Data="{StaticResource CpuIconGeometry}" Style="{StaticResource CompactIconStyle}"
                               AutomationProperties.Name="CPU" />
@@ -73,7 +73,7 @@
                     </StackPanel>
                 </Grid>
 
-                <Grid Width="59" ToolTip="{Binding CompactSecondaryLabel}"
+                <Grid Width="59" ToolTip="{Binding CompactSecondaryDescription}" AutomationProperties.Name="{Binding CompactSecondaryDescription}"
                       Visibility="{Binding HasCompactSecondary, Converter={StaticResource BoolVisibility}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -139,7 +139,7 @@
                 </Grid>
 
                 <WrapPanel Grid.Row="1" ItemWidth="154" Margin="0,0,0,4">
-                    <Border Style="{StaticResource WidgetMetricStyle}">
+                    <Border Style="{StaticResource WidgetMetricStyle}" Visibility="{Binding HasCpuData, Converter={StaticResource BoolVisibility}}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />

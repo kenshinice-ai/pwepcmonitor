@@ -8,12 +8,9 @@ namespace Pwe.PcMonitor.Services;
 
 internal sealed class WindowsMetricsReader
 {
-    private ulong _previousIdle;
-    private ulong _previousKernel;
-    private ulong _previousUser;
-    private DateTimeOffset _previousNetworkAt;
-    private long _previousNetworkIn;
-    private long _previousNetworkOut;
+    private readonly CpuCounterBaseline _cpuBaseline = new();
+    private readonly NetworkCounterBaseline _networkBaseline = new();
+    private string? _networkId;
     private readonly Dictionary<int, (TimeSpan Cpu, DateTimeOffset At)> _processBaselines = [];
 
     public BasicMetrics Read()
@@ -44,20 +41,14 @@ internal sealed class WindowsMetricsReader
             ReadProcesses(now));
     }
 
-    private double ReadCpuUsage()
+    private double? ReadCpuUsage()
     {
-        if (!GetSystemTimes(out var idle, out var kernel, out var user)) return 0;
-        var idleValue = ToUInt64(idle);
-        var kernelValue = ToUInt64(kernel);
-        var userValue = ToUInt64(user);
-        var idleDelta = idleValue - _previousIdle;
-        var kernelDelta = kernelValue - _previousKernel;
-        var userDelta = userValue - _previousUser;
-        _previousIdle = idleValue;
-        _previousKernel = kernelValue;
-        _previousUser = userValue;
-        var total = kernelDelta + userDelta;
-        return total == 0 ? 0 : Math.Clamp((total - idleDelta) * 100d / total, 0, 100);
+        if (!GetSystemTimes(out var idle, out var kernel, out var user))
+        {
+            _cpuBaseline.Reset();
+            return null;
+        }
+        return _cpuBaseline.Read(ToUInt64(idle), ToUInt64(kernel), ToUInt64(user));
     }
 
     private static string ReadProcessorName()
@@ -95,7 +86,7 @@ internal sealed class WindowsMetricsReader
         }
     }
 
-    private (string Name, string Ip, double Down, double Up) ReadNetwork(DateTimeOffset now)
+    private (string Name, string Ip, double? Down, double? Up) ReadNetwork(DateTimeOffset now)
     {
         try
         {
@@ -109,25 +100,26 @@ internal sealed class WindowsMetricsReader
                     Ip = item.GetIPProperties().UnicastAddresses
                         .FirstOrDefault(address => address.Address.AddressFamily == AddressFamily.InterNetwork)?.Address.ToString()
                 })
-                .OrderByDescending(item => item.Stats.BytesReceived + item.Stats.BytesSent)
+                .OrderByDescending(item => item.Interface.Id == _networkId)
+                .ThenByDescending(item => item.Interface.GetIPProperties().GatewayAddresses.Count > 0)
+                .ThenBy(item => item.Interface.Id, StringComparer.Ordinal)
                 .FirstOrDefault();
 
-            if (active is null) return ("Network", "—", 0, 0);
-            var elapsed = (now - _previousNetworkAt).TotalSeconds;
-            var down = elapsed > 0 && _previousNetworkIn > 0
-                ? Math.Max(0, active.Stats.BytesReceived - _previousNetworkIn) / elapsed
-                : 0;
-            var up = elapsed > 0 && _previousNetworkOut > 0
-                ? Math.Max(0, active.Stats.BytesSent - _previousNetworkOut) / elapsed
-                : 0;
-            _previousNetworkAt = now;
-            _previousNetworkIn = active.Stats.BytesReceived;
-            _previousNetworkOut = active.Stats.BytesSent;
+            if (active is null)
+            {
+                _networkId = null;
+                _networkBaseline.Reset();
+                return ("Network", "—", null, null);
+            }
+            _networkId = active.Interface.Id;
+            var (down, up) = _networkBaseline.Read(_networkId, active.Stats.BytesReceived, active.Stats.BytesSent, now);
             return (active.Interface.Name, active.Ip ?? "—", down, up);
         }
         catch
         {
-            return ("Network", "—", 0, 0);
+            _networkId = null;
+            _networkBaseline.Reset();
+            return ("Network", "—", null, null);
         }
     }
 
@@ -220,7 +212,7 @@ internal sealed class WindowsMetricsReader
 }
 
 internal sealed record BasicMetrics(
-    double CpuUsage,
+    double? CpuUsage,
     string ProcessorName,
     ulong MemoryTotal,
     ulong MemoryAvailable,
@@ -229,8 +221,8 @@ internal sealed record BasicMetrics(
     long DiskFree,
     string NetworkName,
     string IpAddress,
-    double NetworkDown,
-    double NetworkUp,
+    double? NetworkDown,
+    double? NetworkUp,
     TimeSpan Uptime,
     bool HasBattery,
     int BatteryPercent,

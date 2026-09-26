@@ -17,7 +17,8 @@ internal readonly record struct GpuTemperatureReading(
     GpuVendor Vendor,
     string HardwareName,
     string SensorName,
-    double Value);
+    double Value,
+    string? HardwareId = null);
 
 internal sealed record GpuTemperatureResult(
     double? Temperature,
@@ -83,7 +84,7 @@ internal static class GpuTemperatureProvider
         IEnumerable<GpuVendor> detectedVendors)
     {
         var values = readings
-            .Where(item => item.Value is > -20 and < 150)
+            .Where(item => double.IsFinite(item.Value) && item.Value is > -20 and < 150 && !IsSecondary(item.SensorName))
             .ToArray();
         var vendors = detectedVendors
             .Where(item => item != GpuVendor.Unknown)
@@ -102,7 +103,7 @@ internal static class GpuTemperatureProvider
         // core/edge reading per physical adapter first, then use the hottest
         // adapter core for the dashboard's single GPU value.
         var selected = values
-            .GroupBy(item => item.HardwareName, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(item => item.HardwareId ?? item.HardwareName, StringComparer.OrdinalIgnoreCase)
             .Select(group => group
                 .OrderByDescending(item => SensorPriority(item.Vendor, item.SensorName))
                 .ThenBy(item => item.SensorName, StringComparer.OrdinalIgnoreCase)
@@ -143,6 +144,7 @@ internal static class GpuTemperatureProvider
     }
 
     private static bool IsSecondary(string name) =>
+        name.Contains("Hotspot", StringComparison.OrdinalIgnoreCase) ||
         name.Contains("Hot Spot", StringComparison.OrdinalIgnoreCase) ||
         name.Contains("Memory", StringComparison.OrdinalIgnoreCase) ||
         name.Contains("Board", StringComparison.OrdinalIgnoreCase) ||

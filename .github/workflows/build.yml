@@ -32,6 +32,15 @@ jobs:
       - name: Build
         run: dotnet build PwePcMonitor.slnx --configuration Release --no-restore
 
+      - name: Regression tests
+        shell: pwsh
+        run: |
+          dotnet run --project tests/Pwe.Regression -c Release
+          if ($LASTEXITCODE -ne 0) { throw "Logic regression tests failed" }
+          dotnet run --project tests/Pwe.WindowsRegression -c Release
+          if ($LASTEXITCODE -ne 0) { throw "Windows regression tests failed" }
+          ./scripts/test-smoke-validation.ps1
+
       - name: Publish and package self-contained Windows build
         shell: pwsh
         run: ./scripts/build-windows.ps1 -Runtime win-x64 -PackageVersion "${{ github.ref_name }}"
@@ -40,6 +49,7 @@ jobs:
         shell: pwsh
         run: |
           $exe = Join-Path $PWD "artifacts/win-x64/PwePcMonitor.exe"
+          . ./scripts/Assert-SmokeResult.ps1
           $cases = @(
             @{ Arguments = @("--smoke-test", "--safe-mode"); Name = "safe" },
             @{ Arguments = @("--smoke-test"); Name = "enhanced" }
@@ -47,14 +57,15 @@ jobs:
           foreach ($case in $cases) {
             $process = Start-Process -FilePath $exe -ArgumentList $case.Arguments -PassThru
             try {
-              # windows-latest is a service session without a desktop shell;
-              # it may not dispatch WPF timers. Staying alive is the useful
-              # assertion here, so only a non-zero early exit fails the build.
-              Start-Sleep -Seconds 5
-              $process.Refresh()
-              if ($process.HasExited -and $process.ExitCode -ne 0) {
+              if (-not $process.WaitForExit(60000)) {
+                throw "Sampler smoke test timed out ($($case.Name))."
+              }
+              if ($process.ExitCode -ne 0) {
                 throw "PwePcMonitor.exe exited with code $($process.ExitCode) ($($case.Name))."
               }
+              $log = Join-Path $env:LOCALAPPDATA "PWE/PC Monitor/logs/latest.log"
+              $content = Get-Content -LiteralPath $log -Raw -ErrorAction Stop
+              Assert-SmokeResult -Exited $process.HasExited -ExitCode $process.ExitCode -LogText $content
             }
             finally {
               if (-not $process.HasExited) {
@@ -110,8 +121,10 @@ jobs:
           PWE PC MONITOR $env:GITHUB_REF_NAME
 
           Self-contained Windows x64 build. Extract the zip and run PwePcMonitor.exe.
-          The floating widget now has a clearer compact layout, more readable hover details, a vector memory shortcut, and reduced-motion-aware transitions.
-          No separate .NET installation is required. This release is read-only and does not contain fan control.
+          Reliability update: unavailable readings no longer become zero, GPU core temperatures stay validated, network baselines follow the adapter, and floating-window hiding and memory feedback are consistent.
+          Storage capacity now explicitly describes the system volume; unmatched physical-disk temperatures and rates remain in sensor diagnostics instead of being mixed into that card.
+          No separate .NET installation is required. Hardware monitoring is read-only; optional manual memory optimization trims eligible session-process working sets. There is no fan control.
+          Logic and Windows regression checks plus real sampler startup/sample/shutdown smoke checks run in CI. Physical GPU/driver combinations, mixed-DPI interaction and visual accessibility still require real-machine validation.
           GPU temperature sources use the installed NVIDIA NVAPI, AMD ADL or Intel IGCL driver backend through LibreHardwareMonitor; no vendor DLLs are bundled.
           PawnIO is optional and is not bundled; the app provides an explicit official installer link and sensor recheck action when a machine needs it.
 

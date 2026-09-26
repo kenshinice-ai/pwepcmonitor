@@ -22,6 +22,29 @@ public static class MemoryOptimizer
     private const int MaximumProcessesToTrim = 12;
     private const uint ProcessQueryInformation = 0x0400;
     private const uint ProcessSetQuota = 0x0100;
+    private static int _lastExternalForeground;
+    private static IntPtr _foregroundHook;
+    private static readonly WinEventCallback ForegroundCallback = (_, _, _, _, _, _, _) => ObserveForeground();
+
+    public static void StartForegroundTracking()
+    {
+        ObserveForeground();
+        // WINEVENT_OUTOFCONTEXT; retain the delegate for the lifetime of the hook.
+        _foregroundHook = SetWinEventHook(3, 3, IntPtr.Zero, ForegroundCallback, 0, 0, 0);
+        if (_foregroundHook == IntPtr.Zero) AppDiagnostics.Write("Foreground tracking unavailable; working-set trim disabled");
+    }
+
+    public static void StopForegroundTracking()
+    {
+        if (_foregroundHook != IntPtr.Zero) UnhookWinEvent(_foregroundHook);
+        _foregroundHook = IntPtr.Zero;
+    }
+
+    private static void ObserveForeground()
+    {
+        var id = GetForegroundProcessId();
+        if (id != 0 && id != Environment.ProcessId) Volatile.Write(ref _lastExternalForeground, id);
+    }
 
     private static readonly HashSet<string> ProtectedProcessNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -31,9 +54,12 @@ public static class MemoryOptimizer
 
     public static MemoryTrimResult TrimCurrentUserSession()
     {
+        if (_foregroundHook == IntPtr.Zero) throw new InvalidOperationException("Foreground protection is unavailable.");
         var currentProcessId = Environment.ProcessId;
-        var currentSessionId = Process.GetCurrentProcess().SessionId;
+        using var currentProcess = Process.GetCurrentProcess();
+        var currentSessionId = currentProcess.SessionId;
         var foregroundProcessId = GetForegroundProcessId();
+        var previousForegroundId = Volatile.Read(ref _lastExternalForeground);
         var candidates = new List<ProcessCandidate>();
         var scanned = 0;
         var skipped = 0;
@@ -45,6 +71,7 @@ public static class MemoryOptimizer
                 scanned++;
                 if (process.Id == currentProcessId ||
                     process.Id == foregroundProcessId ||
+                    process.Id == previousForegroundId ||
                     process.SessionId != currentSessionId ||
                     ProtectedProcessNames.Contains(process.ProcessName))
                 {
@@ -53,7 +80,7 @@ public static class MemoryOptimizer
 
                 var workingSet = process.WorkingSet64;
                 if (workingSet >= MinimumWorkingSetBytes)
-                    candidates.Add(new ProcessCandidate(process.Id, workingSet));
+                    candidates.Add(new ProcessCandidate(process.Id, workingSet, process.StartTime.ToUniversalTime().ToFileTimeUtc()));
             }
             catch
             {
@@ -78,6 +105,15 @@ public static class MemoryOptimizer
 
             try
             {
+                // Check identity on the same handle used for the trim; a PID
+                // can be reused between enumeration and OpenProcess.
+                if (!GetProcessTimes(handle, out var creation, out _, out _, out _) ||
+                    !CanTrimIdentity(candidate.Id, candidate.Created, creation,
+                        GetForegroundProcessId(), Volatile.Read(ref _lastExternalForeground)))
+                {
+                    skipped++;
+                    continue;
+                }
                 if (!EmptyWorkingSet(handle))
                 {
                     skipped++;
@@ -87,7 +123,8 @@ public static class MemoryOptimizer
                 trimmed++;
                 using var refreshed = Process.GetProcessById(candidate.Id);
                 refreshed.Refresh();
-                released += Math.Max(0, candidate.WorkingSet - refreshed.WorkingSet64);
+                if (refreshed.StartTime.ToUniversalTime().ToFileTimeUtc() == candidate.Created)
+                    released += Math.Max(0, candidate.WorkingSet - refreshed.WorkingSet64);
             }
             catch
             {
@@ -110,7 +147,23 @@ public static class MemoryOptimizer
         return unchecked((int)processId);
     }
 
-    private readonly record struct ProcessCandidate(int Id, long WorkingSet);
+    private readonly record struct ProcessCandidate(int Id, long WorkingSet, long Created);
+
+    internal static bool CanTrimIdentity(int id, long expectedCreation, long actualCreation, int foreground, int previousForeground) =>
+        expectedCreation == actualCreation && id != foreground && id != previousForeground;
+
+    private delegate void WinEventCallback(IntPtr hook, uint eventType, IntPtr window, int objectId, int childId, uint threadId, uint time);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetWinEventHook(uint minimum, uint maximum, IntPtr module, WinEventCallback callback, uint processId, uint threadId, uint flags);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool UnhookWinEvent(IntPtr hook);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetProcessTimes(IntPtr process, out long creation, out long exit, out long kernel, out long user);
 
     [DllImport("psapi.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

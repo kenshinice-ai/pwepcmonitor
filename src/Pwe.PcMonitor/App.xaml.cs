@@ -21,6 +21,7 @@ public partial class App : System.Windows.Application
     private int _lastIconBucket = -1;
     private HealthState _lastIconHealth = (HealthState)(-1);
     private bool _smokeTest;
+    private bool _exiting;
 
     public App()
     {
@@ -28,6 +29,7 @@ public partial class App : System.Windows.Application
         {
             AppDiagnostics.Write("DispatcherUnhandledException", args.Exception);
             args.Handled = true;
+            if (_smokeTest) { Shutdown(1); return; }
             ShowFailure("The dashboard encountered an unexpected error. Details were saved to the local diagnostic log.");
         };
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
@@ -52,6 +54,12 @@ public partial class App : System.Windows.Application
 
         try
         {
+            if (_smokeTest)
+            {
+                _ = RunSmokeTestAsync(safeMode);
+                return;
+            }
+            MemoryOptimizer.StartForegroundTracking();
             _settingsService = new AppSettingsService();
             _viewModel = new MonitorViewModel(_settingsService, enableEnhancedSensors: !safeMode);
             _window = new MainWindow(_viewModel);
@@ -62,23 +70,7 @@ public partial class App : System.Windows.Application
 
             if (_viewModel.ShowFloatingWidget) _floatingWindow.ShowWidget();
 
-            if (_smokeTest)
-            {
-                // Hosted Windows runners do not provide an interactive desktop.
-                // Constructing the complete app is still useful, but calling
-                // Window.Show there can wait on the unavailable shell.
-                var timer = new System.Windows.Threading.DispatcherTimer
-                {
-                    Interval = TimeSpan.FromSeconds(3)
-                };
-                timer.Tick += (_, _) =>
-                {
-                    timer.Stop();
-                    ExitApplication();
-                };
-                timer.Start();
-            }
-            else if (!e.Args.Contains("--background", StringComparer.OrdinalIgnoreCase))
+            if (!e.Args.Contains("--background", StringComparer.OrdinalIgnoreCase))
             {
                 _window.ShowNearTray();
             }
@@ -87,6 +79,35 @@ public partial class App : System.Windows.Application
         {
             AppDiagnostics.Write("Startup failed", exception);
             ShowFailure($"PWE PC MONITOR could not start.\n\n{exception.GetType().Name}: {exception.Message}\n\nDiagnostic log:\n{AppDiagnostics.LogPath}");
+            Shutdown(1);
+        }
+    }
+
+    private async Task RunSmokeTestAsync(bool safeMode)
+    {
+        try
+        {
+            // No windows or tray shell in hosted CI. Verify the actual sampler
+            // and resource shutdown, not merely that a process remains alive.
+            await Task.Run(async () =>
+            {
+                using (var sampler = new SystemSampler(!safeMode))
+                {
+                    AppDiagnostics.Write("SMOKE initialized");
+                    sampler.Sample();
+                    await Task.Delay(250);
+                    var sample = sampler.Sample();
+                    if (sample.Timestamp is null || sample.MemoryTotal == 0 || sample.CpuUsage is null)
+                        throw new InvalidOperationException("Basic sample did not contain memory and CPU data.");
+                    AppDiagnostics.Write("SMOKE sampled");
+                }
+                AppDiagnostics.Write("SMOKE stopped");
+            });
+            Shutdown(0);
+        }
+        catch (Exception exception)
+        {
+            AppDiagnostics.Write("SMOKE failed", exception);
             Shutdown(1);
         }
     }
@@ -210,12 +231,13 @@ public partial class App : System.Windows.Application
                 ? null
                 : (snapshot.CpuPowerWatts ?? 0) + (snapshot.GpuPowerWatts ?? 0);
             var temperature = snapshot.CpuTemperatureMax ?? snapshot.CpuTemperature;
-            var parts = new List<string> { $"PWE · CPU {snapshot.CpuUsage:0}%" };
+            var parts = new List<string> { "PWE" };
+            if (snapshot.CpuUsage is double cpu) parts.Add($"CPU {cpu:0}%");
             if (power is double watts) parts.Add($"{watts:0} W");
             if (temperature is > 0) parts.Add($"{temperature:0}°C");
             var text = string.Join(" · ", parts);
             _trayIcon.Text = text[..Math.Min(text.Length, 63)];
-            UpdateTrayIcon(snapshot.CpuUsage, snapshot.OverallHealth);
+            UpdateTrayIcon(snapshot.CpuUsage ?? 0, snapshot.OverallHealth);
         }
         catch (Exception exception)
         {
@@ -308,7 +330,7 @@ public partial class App : System.Windows.Application
         if (_viewModel is null || _floatingWindow is null) return;
         _viewModel.ToggleFloatingWidget();
         if (_viewModel.ShowFloatingWidget) _floatingWindow.ShowWidget();
-        else _floatingWindow.Hide();
+        else _floatingWindow.HideWidget();
     }
 
     public void RestartAsAdministrator()
@@ -338,13 +360,21 @@ public partial class App : System.Windows.Application
         _viewModel?.RecheckSensors();
     }
 
-    public void ExitApplication()
+    public async void ExitApplication()
     {
+        if (_exiting) return;
+        _exiting = true;
         _window?.AllowClose();
         _window?.Close();
         _floatingWindow?.AllowClose();
         _floatingWindow?.Close();
-        _viewModel?.Dispose();
+        if (_viewModel is not null)
+        {
+            _viewModel.SnapshotUpdated -= ViewModelOnSnapshotUpdated;
+            try { await _viewModel.DisposeAsync(); }
+            catch (Exception exception) { AppDiagnostics.Write("Sampler shutdown failed", exception); }
+        }
+        MemoryOptimizer.StopForegroundTracking();
         if (_trayIcon is not null) _trayIcon.Visible = false;
         _trayIcon?.Dispose();
         _currentTrayIcon?.Dispose();

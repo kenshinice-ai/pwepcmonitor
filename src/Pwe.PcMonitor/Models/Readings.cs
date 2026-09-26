@@ -20,7 +20,7 @@ public sealed record CoreReading(string Name, double LoadPercent, double? ClockM
 
 public sealed record SystemSnapshot
 {
-    public DateTimeOffset Timestamp { get; init; } = DateTimeOffset.Now;
+    public DateTimeOffset? Timestamp { get; init; }
     public string MachineName { get; init; } = Environment.MachineName;
     public string ProcessorName { get; init; } = "Windows PC";
     public string GpuName { get; init; } = "GPU";
@@ -29,7 +29,7 @@ public sealed record SystemSnapshot
     public string GpuTemperatureSource { get; init; } = "GPU provider not detected";
     public TimeSpan Uptime { get; init; }
 
-    public double CpuUsage { get; init; }
+    public double? CpuUsage { get; init; }
     public double? CpuClockMhz { get; init; }
     public double? CpuTemperature { get; init; }
     public double? CpuTemperatureMax { get; init; }
@@ -57,8 +57,8 @@ public sealed record SystemSnapshot
 
     public string NetworkName { get; init; } = "Network";
     public string IpAddress { get; init; } = "—";
-    public double NetworkDownBytesPerSecond { get; init; }
-    public double NetworkUpBytesPerSecond { get; init; }
+    public double? NetworkDownBytesPerSecond { get; init; }
+    public double? NetworkUpBytesPerSecond { get; init; }
 
     public bool HasBattery { get; init; }
     public int BatteryPercent { get; init; }
@@ -71,7 +71,7 @@ public sealed record SystemSnapshot
     public IReadOnlyList<SensorReading> Sensors { get; init; } = [];
 
     public HealthState CpuHealth => HealthRules.Max(
-        HealthRules.Utilization(CpuUsage),
+        HealthRules.Utilization(CpuUsage ?? 0),
         HealthRules.Temperature(CpuTemperatureMax ?? CpuTemperature));
     public HealthState GpuHealth => HealthRules.Max(
         HealthRules.Utilization(GpuUsage ?? 0),

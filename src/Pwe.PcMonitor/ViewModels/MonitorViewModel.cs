@@ -7,7 +7,7 @@ using Pwe.PcMonitor.Services;
 
 namespace Pwe.PcMonitor.ViewModels;
 
-public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
+public sealed class MonitorViewModel : INotifyPropertyChanged, IAsyncDisposable
 {
     private const int HistoryLength = 89;
     private readonly SystemSampler _sampler;
@@ -16,6 +16,9 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     private readonly Queue<double> _gpuHistory = new();
     private readonly Queue<double> _powerHistory = new();
     private CancellationTokenSource? _cancellation;
+    private Task? _samplingTask;
+    private Task? _memoryTask;
+    private bool _stopping;
     private SystemSnapshot _snapshot = new();
     private AppSettings _settings;
     private bool _isSampling;
@@ -60,10 +63,10 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         {
             Snapshot.MachineName,
             Snapshot.MemoryTotal > 0 ? FormatBytes(Snapshot.MemoryTotal, oneDecimal: false) : null,
-            $"up {FormatUptime(Snapshot.Uptime)}"
+            Snapshot.Timestamp is not null ? $"up {FormatUptime(Snapshot.Uptime)}" : null
         }.Where(item => !string.IsNullOrWhiteSpace(item)));
     public string SensorStatus => Snapshot.SensorStatus;
-    public string CpuValue => $"{Snapshot.CpuUsage:0}%";
+    public string CpuValue => Snapshot.CpuUsage is double value ? $"{value:0}%" : string.Empty;
     public string CpuSub => JoinAvailable(FormatGhz(Snapshot.CpuClockMhz), FormatTemperature(Snapshot.CpuTemperatureMax ?? Snapshot.CpuTemperature));
     public string GpuValue => Snapshot.GpuUsage is double value ? $"{value:0}%" : "—";
     public string GpuSub => JoinAvailable(FormatMhz(Snapshot.GpuClockMhz), FormatTemperature(Snapshot.GpuTemperature));
@@ -73,6 +76,8 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         Snapshot.CpuPowerWatts is double cpu ? $"CPU {FormatWatts(cpu)}" : null,
         Snapshot.GpuPowerWatts is double gpu ? $"GPU {FormatWatts(gpu)}" : null);
     public string CompactSecondaryLabel => HasGpuData ? "GPU" : HasBattery ? "BAT" : HasPowerData ? "POWER" : string.Empty;
+    public string CompactSecondaryDescription => $"{CompactSecondaryLabel} · {CompactSecondaryValue} · {GpuSubIfSelected}";
+    private string GpuSubIfSelected => HasGpuData ? GpuSub : CompactSecondarySub;
     public string CompactSecondaryValue => HasGpuData
         ? HasGpuUsage ? GpuValue
             : Snapshot.GpuTemperature is > 0 ? FormatTemperature(Snapshot.GpuTemperature)
@@ -86,7 +91,7 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         : HasBattery ? BatteryState
         : HasPowerData && HasPowerSub ? PowerSub
         : string.Empty;
-    public HealthState CompactSecondaryHealth => HasGpuData ? GpuHealth : HasPowerData ? PowerHealth : HealthState.Calm;
+    public HealthState CompactSecondaryHealth => HasGpuData ? GpuHealth : HasBattery ? HealthState.Calm : HasPowerData ? PowerHealth : HealthState.Calm;
     public bool HasCompactSecondary => HasGpuData || HasBattery || HasPowerData;
     public bool HasCompactSecondarySub => !string.IsNullOrWhiteSpace(CompactSecondarySub) && CompactSecondarySub != "—";
     public bool HasCompactGpu => HasGpuData;
@@ -127,12 +132,17 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         : string.Empty;
     public string OverallLabel => Snapshot.OverallHealth switch { HealthState.Hot => "HOT", HealthState.Warm => "WARM", _ => "CALM" };
     public HealthState OverallHealth => Snapshot.OverallHealth;
+    public bool HasCurrentSample => Snapshot.Timestamp is not null;
     public HealthState CpuHealth => Snapshot.CpuHealth;
     public HealthState GpuHealth => Snapshot.GpuHealth;
     public HealthState PowerHealth => HealthRules.Grade(CombinedPower, 150, 300);
     public HealthState MemoryHealth => Snapshot.MemoryHealth;
     public HealthState DiskHealth => Snapshot.DiskHealth;
     public bool HasBattery => Snapshot.HasBattery;
+    public bool HasCpuUsage => Snapshot.CpuUsage is not null;
+    public bool HasCpuData => HasCpuUsage || HasCpuSub;
+    public bool HasNetworkDown => Snapshot.NetworkDownBytesPerSecond is not null;
+    public bool HasNetworkUp => Snapshot.NetworkUpBytesPerSecond is not null;
     public bool HasCpuSub => HasPositive(Snapshot.CpuClockMhz) || HasPositive(Snapshot.CpuTemperatureMax ?? Snapshot.CpuTemperature);
     public bool HasCpuAverageTemperature => HasPositive(Snapshot.CpuTemperature);
     public bool HasCpuMaxTemperature => HasPositive(Snapshot.CpuTemperatureMax);
@@ -161,7 +171,7 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     public IReadOnlyList<string> SensorDiagnostics => BuildSensorDiagnostics();
     public bool HasSensorDiagnostics => SensorDiagnostics.Count > 0;
     public bool IsMemoryActionInProgress => _memoryActionInProgress;
-    public bool CanOptimizeMemory => HasMemoryData && !_memoryActionInProgress;
+    public bool CanOptimizeMemory => HasMemoryData && !_memoryActionInProgress && !_stopping;
     public bool HasMemoryActionStatus => !string.IsNullOrWhiteSpace(MemoryActionStatus);
     public bool NeedsSensorAccess => Snapshot.SensorStatus.Contains("PawnIO", StringComparison.OrdinalIgnoreCase) ||
                                      Snapshot.SensorStatus.Contains("administrator", StringComparison.OrdinalIgnoreCase) ||
@@ -175,7 +185,7 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     {
         if (_cancellation is not null) return;
         _cancellation = new CancellationTokenSource();
-        _ = SamplingLoopAsync(_cancellation.Token);
+        _samplingTask = SamplingLoopAsync(_cancellation.Token);
     }
 
     public void SetRefresh(double seconds)
@@ -219,12 +229,18 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(SensorAccessHint));
     }
 
-    public async Task OptimizeMemoryAsync()
+    public Task OptimizeMemoryAsync()
+    {
+        if (!CanOptimizeMemory) return Task.CompletedTask;
+        return _memoryTask = OptimizeMemoryCoreAsync();
+    }
+
+    private async Task OptimizeMemoryCoreAsync()
     {
         if (!CanOptimizeMemory || _memoryActionInProgress) return;
 
         _memoryActionInProgress = true;
-        MemoryActionStatus = "Measuring eligible user processes…";
+        MemoryActionStatus = "Measuring eligible session processes…";
         OnPropertyChanged(nameof(IsMemoryActionInProgress));
         OnPropertyChanged(nameof(CanOptimizeMemory));
         OnPropertyChanged(nameof(MemoryActionStatus));
@@ -234,8 +250,8 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         {
             var result = await Task.Run(MemoryOptimizer.TrimCurrentUserSession);
             MemoryActionStatus = result.TrimmedProcesses > 0
-                ? $"Trimmed {result.TrimmedProcesses} process{(result.TrimmedProcesses == 1 ? "" : "es")} · {FormatBytes((ulong)Math.Max(0, result.EstimatedBytesReleased))} working set released"
-                : "No eligible user-process working sets could be trimmed";
+                ? $"Trimmed {result.TrimmedProcesses} process{(result.TrimmedProcesses == 1 ? "" : "es")} · estimated {FormatBytes((ulong)Math.Max(0, result.EstimatedBytesReleased))} working-set reduction · {result.SkippedProcesses} skipped"
+                : "No eligible session-process working sets could be trimmed";
         }
         catch (Exception exception)
         {
@@ -262,7 +278,8 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
                 try
                 {
                     var next = await Task.Run(_sampler.Sample, cancellationToken);
-                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() => ApplySnapshot(next));
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!_stopping) ApplySnapshot(next);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -270,8 +287,8 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
                 }
                 catch (Exception exception)
                 {
-                    // The next cycle retries; the last good snapshot remains visible.
                     AppDiagnostics.Write("Sampling loop failed", exception);
+                    if (!_stopping) ApplySnapshot(new SystemSnapshot { SensorStatus = "Sampling failed; waiting for retry" });
                 }
                 finally
                 {
@@ -298,8 +315,8 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         Replace(Processes, next.Processes);
         Replace(Sensors, _settings.ShowAllSensors ? next.Sensors : next.Sensors.Take(24));
         Push(_cpuHistory, next.CpuUsage);
-        Push(_gpuHistory, next.GpuUsage ?? 0);
-        Push(_powerHistory, CombinedPower ?? 0);
+        Push(_gpuHistory, next.GpuUsage);
+        Push(_powerHistory, CombinedPower);
         OnPropertyChanged(nameof(CpuHistory));
         OnPropertyChanged(nameof(GpuHistory));
         OnPropertyChanged(nameof(PowerHistory));
@@ -320,6 +337,7 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     {
         foreach (var name in new[]
         {
+            nameof(HasCurrentSample), nameof(HasCpuData), nameof(HasCpuUsage), nameof(HasNetworkDown), nameof(HasNetworkUp), nameof(CompactSecondaryDescription),
             nameof(MachineSummary), nameof(SensorStatus), nameof(CpuValue), nameof(CpuSub), nameof(GpuValue), nameof(GpuSub),
             nameof(CombinedPower), nameof(PowerValue), nameof(PowerSub), nameof(CompactSecondaryLabel), nameof(CompactSecondaryValue), nameof(CompactSecondarySub), nameof(CompactSecondaryHealth), nameof(HasCompactSecondary), nameof(HasCompactSecondarySub), nameof(HasCompactGpu), nameof(HasCompactBattery), nameof(HasCompactPower), nameof(CpuAverageTemperature), nameof(CpuMaxTemperature),
             nameof(GpuTemperature), nameof(GpuTemperatureSource), nameof(HasGpuTemperatureSource), nameof(DiskTemperature), nameof(MemoryValue), nameof(MemoryTotal), nameof(MemoryAvailable),
@@ -340,6 +358,10 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     {
         var diagnostics = new List<string>();
         AddDiagnostic(diagnostics, Snapshot.SensorStatus, "Basic Windows metrics");
+        if (!HasCpuUsage) diagnostics.Add("CPU usage: unavailable or initializing");
+        if (Snapshot.Timestamp is null) diagnostics.Add("No successful current sample");
+        if (HasDiskData) diagnostics.Add("Storage: system-volume capacity; unmatched physical-disk temperature and rates remain in All Sensors");
+        if (HasNetworkData && (!HasNetworkDown || !HasNetworkUp)) diagnostics.Add("Network rate: initializing adapter baseline");
 
         if (!HasCpuAverageTemperature && !HasCpuMaxTemperature)
             diagnostics.Add("CPU temperature: no readable channel");
@@ -383,9 +405,9 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         foreach (var item in items) target.Add(item);
     }
 
-    private static void Push(Queue<double> queue, double value)
+    private static void Push(Queue<double> queue, double? value)
     {
-        queue.Enqueue(value);
+        queue.Enqueue(value ?? double.NaN);
         while (queue.Count > HistoryLength) queue.Dequeue();
     }
 
@@ -420,9 +442,13 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
+        if (_stopping) return;
+        _stopping = true;
         _cancellation?.Cancel();
+        if (_samplingTask is not null) await _samplingTask;
+        if (_memoryTask is not null) await _memoryTask;
         _cancellation?.Dispose();
         _cancellation = null;
         _sampler.Dispose();

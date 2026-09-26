@@ -31,6 +31,7 @@
                     <TextBlock Text="{Binding MachineSummary}" Style="{StaticResource MutedTextStyle}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
                 <Border Grid.Column="2" Padding="11,6" CornerRadius="16"
+                        Visibility="{Binding HasCurrentSample, Converter={StaticResource BoolVisibility}}"
                         Background="{Binding OverallHealth, Converter={StaticResource HealthBadgeBrush}}"
                         VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
@@ -53,7 +54,7 @@
                                 <ColumnDefinition Width="1" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <StackPanel Margin="0,0,13,0">
+                            <StackPanel Margin="0,0,13,0" Visibility="{Binding HasCpuData, Converter={StaticResource BoolVisibility}}">
                                 <StackPanel.Style>
                                     <Style TargetType="StackPanel">
                                         <Setter Property="Grid.ColumnSpan" Value="1" />
@@ -298,8 +299,8 @@
                             <StackPanel>
                                 <TextBlock Text="NETWORK" Style="{StaticResource SectionLabelStyle}" Margin="0,0,0,8" />
                                 <TextBlock Text="{Binding Snapshot.NetworkName}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" Margin="0,0,0,5" />
-                                <Grid Margin="0,3"><TextBlock Text="Down" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding NetworkDown}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
-                                <Grid Margin="0,3"><TextBlock Text="Up" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding NetworkUp}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
+                                <Grid Margin="0,3" Visibility="{Binding HasNetworkDown, Converter={StaticResource BoolVisibility}}"><TextBlock Text="Down" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding NetworkDown}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
+                                <Grid Margin="0,3" Visibility="{Binding HasNetworkUp, Converter={StaticResource BoolVisibility}}"><TextBlock Text="Up" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding NetworkUp}" HorizontalAlignment="Right" FontWeight="SemiBold" /></Grid>
                                 <Grid Margin="0,3" Visibility="{Binding HasNetworkAddress, Converter={StaticResource BoolVisibility}}"><TextBlock Text="Address" Foreground="{DynamicResource MutedBrush}" /><TextBlock Text="{Binding Snapshot.IpAddress}" HorizontalAlignment="Right" /></Grid>
                             </StackPanel>
                         </Border>

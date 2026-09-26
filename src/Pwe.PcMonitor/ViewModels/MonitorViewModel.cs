@@ -74,7 +74,10 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IDisposable
         Snapshot.GpuPowerWatts is double gpu ? $"GPU {FormatWatts(gpu)}" : null);
     public string CompactSecondaryLabel => HasGpuData ? "GPU" : HasBattery ? "BAT" : HasPowerData ? "POWER" : string.Empty;
     public string CompactSecondaryValue => HasGpuData
-        ? HasGpuUsage ? GpuValue : GpuSub
+        ? HasGpuUsage ? GpuValue
+            : Snapshot.GpuTemperature is > 0 ? FormatTemperature(Snapshot.GpuTemperature)
+            : Snapshot.GpuClockMhz is > 0 ? $"{Snapshot.GpuClockMhz / 1000:0.0}G"
+            : string.Empty
         : HasBattery ? BatteryValue
         : HasPowerData ? PowerValue
         : string.Empty;

@@ -110,6 +110,7 @@ jobs:
           PWE PC MONITOR $env:GITHUB_REF_NAME
 
           Self-contained Windows x64 build. Extract the zip and run PwePcMonitor.exe.
+          The floating widget now has a clearer compact layout, more readable hover details, a vector memory shortcut, and reduced-motion-aware transitions.
           No separate .NET installation is required. This release is read-only and does not contain fan control.
           GPU temperature sources use the installed NVIDIA NVAPI, AMD ADL or Intel IGCL driver backend through LibreHardwareMonitor; no vendor DLLs are bundled.
           PawnIO is optional and is not bundled; the app provides an explicit official installer link and sensor recheck action when a machine needs it.

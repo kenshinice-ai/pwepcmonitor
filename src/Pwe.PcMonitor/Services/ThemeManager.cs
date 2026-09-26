@@ -28,6 +28,8 @@ public static class ThemeManager
         var resources = System.Windows.Application.Current.Resources;
         Set(resources, "BackgroundBrush", WithAlpha(IsDark ? Navy : Paper, 0.91));
         Set(resources, "CardBrush", WithAlpha(IsDark ? FromHex("#152239") : Colors.White, 0.84));
+        Set(resources, "WidgetSurfaceBrush", WithAlpha(IsDark ? FromHex("#152239") : Colors.White, IsDark ? 0.94 : 0.96));
+        Set(resources, "WidgetMutedBrush", IsDark ? FromHex("#BCC7D5") : FromHex("#536174"));
         Set(resources, "StrokeBrush", WithAlpha(IsDark ? FromHex("#26344B") : FromHex("#E3DFD8"), 0.72));
         Set(resources, "RailBrush", WithAlpha(IsDark ? FromHex("#2C3A51") : FromHex("#EDEAE4"), 0.68));
         Set(resources, "TextBrush", IsDark ? Paper : Navy);

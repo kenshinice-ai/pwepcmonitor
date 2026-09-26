@@ -12,8 +12,8 @@ namespace Pwe.PcMonitor;
 
 public partial class FloatingWindow : Window
 {
-    private static readonly TimeSpan ExpandDelay = TimeSpan.FromMilliseconds(280);
-    private static readonly TimeSpan CollapseDelay = TimeSpan.FromMilliseconds(500);
+    private static readonly TimeSpan ExpandDelay = TimeSpan.FromMilliseconds(140);
+    private static readonly TimeSpan CollapseDelay = TimeSpan.FromMilliseconds(450);
     private readonly DispatcherTimer _expandTimer;
     private readonly DispatcherTimer _collapseTimer;
     private readonly MonitorViewModel _viewModel;
@@ -141,18 +141,17 @@ public partial class FloatingWindow : Window
 
     private void DetailPopup_Opened(object? sender, EventArgs e)
     {
+        DetailSurface.BeginAnimation(UIElement.OpacityProperty, null);
+        DetailSurface.RenderTransform = Transform.Identity;
+        DetailSurface.Opacity = 1;
+        if (!SystemParameters.ClientAreaAnimation) return;
+
         DetailSurface.Opacity = 0;
-        var translate = new TranslateTransform(0, -6);
-        DetailSurface.RenderTransform = translate;
-        var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
-        DetailSurface.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150))
-        {
-            EasingFunction = easing
-        });
-        translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(-6, 0, TimeSpan.FromMilliseconds(150))
-        {
-            EasingFunction = easing
-        });
+        DetailSurface.BeginAnimation(UIElement.OpacityProperty,
+            new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(120))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            });
     }
 
     private void CloseWidget_Click(object sender, RoutedEventArgs e)

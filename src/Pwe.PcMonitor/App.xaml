@@ -8,6 +8,8 @@
              palette, but let the desktop show through without dimming text. -->
         <SolidColorBrush x:Key="BackgroundBrush" Color="#E60E1729" />
         <SolidColorBrush x:Key="CardBrush" Color="#D9152239" />
+        <SolidColorBrush x:Key="WidgetSurfaceBrush" Color="#F0152239" />
+        <SolidColorBrush x:Key="WidgetMutedBrush" Color="#BCC7D5" />
         <SolidColorBrush x:Key="StrokeBrush" Color="#B326344B" />
         <SolidColorBrush x:Key="RailBrush" Color="#A62C3A51" />
         <SolidColorBrush x:Key="TextBrush" Color="#F7F5F2" />
@@ -29,6 +31,7 @@
         <Geometry x:Key="FanIconGeometry">M12 9.5C9 7 7 8 8.1 10.3C9.4 12.8 11.2 11.9 12 9.5M14.5 12C17 9 16 7 13.7 8.1C11.2 9.4 12.1 11.2 14.5 12M12 14.5C15 17 17 16 15.9 13.7C14.6 11.2 12.8 12.1 12 14.5M12 10A2 2 0 1 0 12 14A2 2 0 1 0 12 10</Geometry>
         <Geometry x:Key="BatteryIconGeometry">M4 7H20V17H4ZM20 10H22V14H20M8 10V14H16V10</Geometry>
         <Geometry x:Key="StorageIconGeometry">M5 4H19A2 2 0 0 1 21 6V18A2 2 0 0 1 19 20H5A2 2 0 0 1 3 18V6A2 2 0 0 1 5 4ZM7 8H17M7 12H17M7 16H12</Geometry>
+        <Geometry x:Key="SparkleIconGeometry">M12 2L14 10L22 12L14 14L12 22L10 14L2 12L10 10Z</Geometry>
 
         <converters:HealthToBrushConverter x:Key="HealthBrush" />
         <converters:HealthToBadgeBrushConverter x:Key="HealthBadgeBrush" />
@@ -105,7 +108,7 @@
             <Setter Property="Width" Value="13" />
             <Setter Property="Height" Value="13" />
             <Setter Property="Stretch" Value="Uniform" />
-            <Setter Property="Stroke" Value="{DynamicResource MutedBrush}" />
+            <Setter Property="Stroke" Value="{DynamicResource WidgetMutedBrush}" />
             <Setter Property="StrokeThickness" Value="1.5" />
             <Setter Property="StrokeStartLineCap" Value="Round" />
             <Setter Property="StrokeEndLineCap" Value="Round" />
@@ -118,7 +121,7 @@
             <Setter Property="Width" Value="15" />
             <Setter Property="Height" Value="15" />
             <Setter Property="Margin" Value="0,0,5,0" />
-            <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="Stroke" Value="{DynamicResource WidgetMutedBrush}" />
             <Setter Property="StrokeThickness" Value="1.45" />
         </Style>
 

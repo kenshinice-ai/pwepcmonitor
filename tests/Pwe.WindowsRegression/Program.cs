@@ -153,6 +153,9 @@ internal static class Program
         {
         element.Dispatcher.Invoke(() => { }, DispatcherPriority.DataBind);
         Pump(Application.Current, TimeSpan.FromMilliseconds(50));
+        // Data changed while this reusable control had no presentation parent.
+        // Its child is current, but the detached root may retain its old measure.
+        element.InvalidateMeasure();
         host.UpdateLayout();
         Console.WriteLine($"RENDER {path}: host={host.ActualWidth}, element={element.ActualWidth}, desired={element.DesiredSize.Width}");
         LogLayout(element);

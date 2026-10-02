@@ -1,5 +1,7 @@
 using System.Reflection;
 using System.IO;
+using System.Xml.Linq;
+using System.Windows.Markup;
 using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 using System.Windows;
@@ -17,8 +19,15 @@ internal static class Program
     [STAThread]
     private static void Main()
     {
-        var app = new RenderTestApp();
-        app.InitializeComponent();
+        var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        // Reuse the production resources without starting the production App.
+        var source = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "AppResources.xaml"));
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        var resources = new XElement(presentation + "ResourceDictionary",
+            new XAttribute(XNamespace.Xmlns + "x", "http://schemas.microsoft.com/winfx/2006/xaml"),
+            new XAttribute(XNamespace.Xmlns + "converters", "clr-namespace:Pwe.PcMonitor.Converters;assembly=PwePcMonitor"),
+            source.Root!.Element(presentation + "Application.Resources")!.Elements());
+        app.Resources = (ResourceDictionary)XamlReader.Parse(resources.ToString());
         var vm = new MonitorViewModel(new AppSettingsService(), false);
         var apply = typeof(MonitorViewModel).GetMethod("ApplySnapshot", BindingFlags.NonPublic | BindingFlags.Instance)!;
         var count = 0;
@@ -119,7 +128,7 @@ internal static class Program
         Console.WriteLine($"{count} Windows regression checks passed.");
     }
 
-    private static void Pump(App app, TimeSpan duration)
+    private static void Pump(Application app, TimeSpan duration)
     {
         var frame = new DispatcherFrame();
         var timer = new DispatcherTimer { Interval = duration };
@@ -143,9 +152,4 @@ internal static class Program
         encoder.Save(output);
     }
 
-    private sealed class RenderTestApp : App
-    {
-        // Pumping WPF must not start tray icons, hardware sampling or real windows.
-        protected override void OnStartup(StartupEventArgs e) { }
-    }
 }

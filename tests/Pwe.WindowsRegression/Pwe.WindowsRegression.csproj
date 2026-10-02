@@ -9,5 +9,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Pwe.PcMonitor/Pwe.PcMonitor.csproj" />
+    <None Include="../../src/Pwe.PcMonitor/App.xaml" Link="AppResources.xaml" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

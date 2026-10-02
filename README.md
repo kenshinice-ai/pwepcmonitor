@@ -4,7 +4,7 @@
 
 **A calm Windows hardware monitor from Paradise Production.**
 
-Current release version: **0.8.0**
+Current release version: **0.8.1**
 
 </div>
 
@@ -38,13 +38,15 @@ PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing ma
 
 In the focused floating widget, **F2** opens details, **Escape** closes details, and **Ctrl+Shift+M** requests memory optimization. These are window-level, not global shortcuts. Details retain keyboard focus and memory-operation completion feedback stays available for at least four seconds unless explicitly dismissed. Disabling the widget closes its details and background memory actions cannot reopen it.
 
+Version 0.8.1 refines the existing PWE interface using the apple-design principles of immediate feedback, reversible disclosure and readable materials: the compact bar fits the available metrics, hover details fade in and out from their current opacity, buttons expose pressed/keyboard-focus states, and memory results wrap instead of being squeezed beside the action. Windows theme changes apply live in System mode; transparency-off uses opaque surfaces, high contrast uses system colours, and animation-off settles immediately. No new monitoring features or production dependencies are introduced.
+
 ## Interface preview
 
 The always-on widget stays compact for a quick glance: vector glyphs carry the CPU, memory and GPU/power/battery values without repeating labels. Rest the pointer on it to open a calm detail panel where each readable channel, including SSD capacity, returns with its icon and full text label. The panel reflows around readable channels, while unsupported fields stay out of the way and remain available in Settings diagnostics.
 
 ![PWE PC MONITOR compact bar and hover detail preview](docs/readme-floating-widget.svg)
 
-<sub>Static vector preview for README documentation; the values shown are illustrative, not a captured live reading.</sub>
+<sub>Static vector overview; values are illustrative, not captured live readings. Current Windows CI also exports actual WPF compact/detail renders using synthetic data, including light/dark and sparse-metric layouts.</sub>
 
 ## Requirements
 
@@ -138,6 +140,8 @@ CPU/GPU temperature defaults are warm at 75 °C and hot at 92 °C. Storage tempe
 The solution can be compiled from macOS with Windows targeting enabled. Run `dotnet run --project tests/Pwe.Regression -c Release` for counter, temperature and missing-value checks. On Windows, also run `dotnet run --project tests/Pwe.WindowsRegression -c Release` for view-model and hidden-popup checks.
 
 GitHub Actions builds and packages Windows x64, runs both suites, and launches the published EXE in safe/enhanced sampler smoke modes. Success requires initialization, valid CPU/memory sampling, resource disposal and exit code zero; a 60-second timeout fails the check. Smoke mode does not show a desktop window. Mixed-DPI interaction, visual accessibility, foreground memory protection, sleep/resume and physical GPU/driver combinations still require real-PC validation. See [the v0.8.0 execution report](docs/release-v0.8.0.md).
+
+The [monitoring follow-up audit](docs/review-v0.7.2-optimization-plan.md#8-2026-10-02-监控链路补充核实) distinguishes verified sampling/semantic gaps from performance hypotheses. The 0.8.1 interface update does not silently change those telemetry policies.
 
 ## Licences and brand
 

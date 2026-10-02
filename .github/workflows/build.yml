@@ -88,6 +88,7 @@ jobs:
             artifacts/pwe-pc-monitor-win-x64-*.zip
             artifacts/pwe-pc-monitor-win-x64-*.sha256
             artifacts/smoke-*.log
+            artifacts/widget-*.png
           if-no-files-found: warn
           retention-days: 30
 
@@ -121,7 +122,8 @@ jobs:
           PWE PC MONITOR $env:GITHUB_REF_NAME
 
           Self-contained Windows x64 build. Extract the zip and run PwePcMonitor.exe.
-          Reliability update: unavailable readings no longer become zero, GPU core temperatures stay validated, network baselines follow the adapter, and floating-window hiding and memory feedback are consistent.
+          Interface refinement: reversible hover details, compact width that follows readable metrics, clearer metric tiles, readable memory feedback, and immediate pressed/keyboard-focus states.
+          Windows transparency, animation and high-contrast preferences are respected; system theme changes apply without a restart. Existing telemetry and manual memory semantics are unchanged.
           Storage capacity now explicitly describes the system volume; unmatched physical-disk temperatures and rates remain in sensor diagnostics instead of being mixed into that card.
           No separate .NET installation is required. Hardware monitoring is read-only; optional manual memory optimization trims eligible session-process working sets. There is no fan control.
           Logic and Windows regression checks plus real sampler startup/sample/shutdown smoke checks run in CI. Physical GPU/driver combinations, mixed-DPI interaction and visual accessibility still require real-machine validation.

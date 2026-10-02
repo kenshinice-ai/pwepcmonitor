@@ -3,10 +3,11 @@ using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Forms = System.Windows.Forms;
 using Pwe.PcMonitor.ViewModels;
+using Pwe.PcMonitor.Controls;
+using Pwe.PcMonitor.Services;
 
 namespace Pwe.PcMonitor;
 
@@ -17,17 +18,20 @@ public partial class FloatingWindow : Window
     private readonly DispatcherTimer _expandTimer;
     private readonly DispatcherTimer _collapseTimer;
     private readonly MonitorViewModel _viewModel;
+    private readonly ReversibleFade _detailFade;
     private bool _allowClose;
     private bool _compactPointerOver;
     private bool _detailPointerOver;
     private bool _detailOpen;
     private DateTimeOffset _resultVisibleUntil;
+    private bool _positioned;
 
     public FloatingWindow(MonitorViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
+        _detailFade = new ReversibleFade(DetailSurface);
 
         DetailPopup.PlacementTarget = CompactSurface;
         DetailPopup.CustomPopupPlacementCallback = PlaceDetailPopup;
@@ -38,26 +42,31 @@ public partial class FloatingWindow : Window
         _collapseTimer.Tick += CollapseTimer_Tick;
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         DetailSurface.LostKeyboardFocus += (_, _) => ScheduleCollapse();
+        ThemeManager.AppearanceChanged += AppearanceChanged;
+        SizeChanged += (_, e) =>
+        {
+            // Keep the right edge anchored when readable metrics appear/disappear.
+            if (_positioned && e.WidthChanged) Left -= e.NewSize.Width - e.PreviousSize.Width;
+        };
     }
 
     public void ShowWidget()
     {
         if (!IsVisible) Show();
         WindowState = WindowState.Normal;
+        UpdateLayout();
         PlaceOnPointerScreen();
     }
 
     public void AllowClose()
     {
         _allowClose = true;
-        StopHoverTimers();
-        DetailPopup.IsOpen = false;
+        ResetDisclosure();
     }
 
     public void HideWidget()
     {
-        StopHoverTimers();
-        SetDetailOpen(false);
+        ResetDisclosure();
         _compactPointerOver = false;
         _detailPointerOver = false;
         _resultVisibleUntil = default;
@@ -66,11 +75,11 @@ public partial class FloatingWindow : Window
 
     private void Window_Closing(object? sender, CancelEventArgs e)
     {
-        StopHoverTimers();
-        DetailPopup.IsOpen = false;
+        ResetDisclosure();
         if (_allowClose)
         {
             _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+            ThemeManager.AppearanceChanged -= AppearanceChanged;
             return;
         }
 
@@ -80,13 +89,31 @@ public partial class FloatingWindow : Window
 
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ButtonState == MouseButtonState.Pressed) DragMove();
+        if (e.ButtonState != MouseButtonState.Pressed || e.Handled) return;
+        var start = e.GetPosition(this);
+        // Let a click remain a click; enter native drag only after the system threshold.
+        _dragOrigin = start;
+    }
+
+    private Point? _dragOrigin;
+
+    private void CompactSurface_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed) { _dragOrigin = null; return; }
+        if (_dragOrigin is not Point start) return;
+        var current = e.GetPosition(this);
+        if (Math.Abs(current.X - start.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(current.Y - start.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+        _dragOrigin = null;
+        ResetDisclosure();
+        DragMove();
     }
 
     private void CompactSurface_MouseEnter(object sender, MouseEventArgs e)
     {
         _compactPointerOver = true;
         _collapseTimer.Stop();
+        if (DetailPopup.IsOpen && !_detailOpen) { SetDetailOpen(true); return; }
         if (!_detailOpen)
         {
             _expandTimer.Stop();
@@ -105,6 +132,7 @@ public partial class FloatingWindow : Window
     {
         _detailPointerOver = true;
         _collapseTimer.Stop();
+        if (!_detailOpen) SetDetailOpen(true);
     }
 
     private void DetailSurface_MouseLeave(object sender, MouseEventArgs e)
@@ -147,6 +175,12 @@ public partial class FloatingWindow : Window
             if (!IsVisible || !_viewModel.ShowFloatingWidget || _allowClose) return;
             _collapseTimer.Stop();
             _detailOpen = true;
+            if (DetailPopup.IsOpen)
+            {
+                _detailFade.To(true, ThemeManager.AnimationsEnabled);
+                return;
+            }
+            DetailSurface.Opacity = 0;
             DetailPopup.IsOpen = true;
             return;
         }
@@ -154,22 +188,28 @@ public partial class FloatingWindow : Window
         _expandTimer.Stop();
         _collapseTimer.Stop();
         _detailOpen = false;
-        DetailPopup.IsOpen = false;
+        _detailFade.To(false, DetailPopup.IsOpen && ThemeManager.AnimationsEnabled,
+            () => { if (!_detailOpen) DetailPopup.IsOpen = false; });
     }
 
     private void DetailPopup_Opened(object? sender, EventArgs e)
     {
-        DetailSurface.BeginAnimation(UIElement.OpacityProperty, null);
-        DetailSurface.RenderTransform = Transform.Identity;
-        DetailSurface.Opacity = 1;
-        if (!SystemParameters.ClientAreaAnimation) return;
+        _detailFade.To(true, ThemeManager.AnimationsEnabled);
+    }
 
-        DetailSurface.Opacity = 0;
-        DetailSurface.BeginAnimation(UIElement.OpacityProperty,
-            new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(120))
-            {
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-            });
+    private void AppearanceChanged(object? sender, EventArgs e)
+    {
+        if (!ThemeManager.AnimationsEnabled && DetailPopup.IsOpen)
+            _detailFade.To(_detailOpen, false, () => { if (!_detailOpen) DetailPopup.IsOpen = false; });
+    }
+
+    private void ResetDisclosure()
+    {
+        StopHoverTimers();
+        _detailOpen = false;
+        _detailFade.To(false, false);
+        DetailPopup.IsOpen = false;
+        _dragOrigin = null;
     }
 
     private void CloseWidget_Click(object sender, RoutedEventArgs e)
@@ -202,7 +242,10 @@ public partial class FloatingWindow : Window
         {
             e.Handled = true;
             SetDetailOpen(true);
-            DetailSurface.MoveFocus(new TraversalRequest(FocusNavigationDirection.First));
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+            {
+                if (_detailOpen) DetailSurface.MoveFocus(new TraversalRequest(FocusNavigationDirection.First));
+            }));
             return;
         }
         var memoryShortcut = ModifierKeys.Control | ModifierKeys.Shift;
@@ -238,8 +281,9 @@ public partial class FloatingWindow : Window
         var bottomRight = transform?.Transform(new Point(workArea.Right, workArea.Bottom))
                           ?? new Point(workArea.Right, workArea.Bottom);
 
-        Left = Math.Max(topLeft.X + 12, bottomRight.X - Width - 24);
+        Left = Math.Max(topLeft.X + 12, bottomRight.X - ActualWidth - 24);
         Top = topLeft.Y + 24;
+        _positioned = true;
     }
 
     private static CustomPopupPlacement[] PlaceDetailPopup(Size popupSize, Size targetSize, Point offset)

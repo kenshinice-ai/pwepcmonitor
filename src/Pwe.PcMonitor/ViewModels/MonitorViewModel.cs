@@ -31,10 +31,12 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IAsyncDisposable
         _settingsService = settingsService;
         _settings = settingsService.Load();
         ThemeManager.Apply(_settings.Theme);
+        ThemeManager.AppearanceChanged += AppearanceChanged;
         _sampler = new SystemSampler(enableEnhancedSensors);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    private void AppearanceChanged(object? sender, EventArgs e) => OnPropertyChanged(string.Empty);
     public event EventHandler<SystemSnapshot>? SnapshotUpdated;
 
     public SystemSnapshot Snapshot
@@ -446,6 +448,7 @@ public sealed class MonitorViewModel : INotifyPropertyChanged, IAsyncDisposable
     {
         if (_stopping) return;
         _stopping = true;
+        ThemeManager.AppearanceChanged -= AppearanceChanged;
         _cancellation?.Cancel();
         if (_samplingTask is not null) await _samplingTask;
         if (_memoryTask is not null) await _memoryTask;

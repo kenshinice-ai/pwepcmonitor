@@ -60,6 +60,7 @@ public partial class App : System.Windows.Application
                 return;
             }
             MemoryOptimizer.StartForegroundTracking();
+            ThemeManager.StartFollowingSystem();
             _settingsService = new AppSettingsService();
             _viewModel = new MonitorViewModel(_settingsService, enableEnhancedSensors: !safeMode);
             _window = new MainWindow(_viewModel);
@@ -375,6 +376,7 @@ public partial class App : System.Windows.Application
             catch (Exception exception) { AppDiagnostics.Write("Sampler shutdown failed", exception); }
         }
         MemoryOptimizer.StopForegroundTracking();
+        ThemeManager.StopFollowingSystem();
         if (_trayIcon is not null) _trayIcon.Visible = false;
         _trayIcon?.Dispose();
         _currentTrayIcon?.Dispose();

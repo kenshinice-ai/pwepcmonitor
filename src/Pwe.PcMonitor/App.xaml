@@ -9,6 +9,7 @@
         <SolidColorBrush x:Key="BackgroundBrush" Color="#E60E1729" />
         <SolidColorBrush x:Key="CardBrush" Color="#D9152239" />
         <SolidColorBrush x:Key="WidgetSurfaceBrush" Color="#F0152239" />
+        <SolidColorBrush x:Key="WidgetTileBrush" Color="#1D2B42" />
         <SolidColorBrush x:Key="WidgetMutedBrush" Color="#BCC7D5" />
         <SolidColorBrush x:Key="StrokeBrush" Color="#B326344B" />
         <SolidColorBrush x:Key="RailBrush" Color="#A62C3A51" />
@@ -40,6 +41,7 @@
         <converters:SensorValueConverter x:Key="SensorValueConverter" />
 
         <Style TargetType="TextBlock">
+            <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
             <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
             <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
@@ -134,6 +136,28 @@
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome" Background="{TemplateBinding Background}" CornerRadius="8"
+                                BorderBrush="Transparent" BorderThickness="1" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource BadgeWarmBrush}" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
@@ -152,7 +176,8 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="Root" Background="Transparent" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="Root" Background="Transparent" CornerRadius="7" Padding="{TemplateBinding Padding}"
+                                BorderBrush="Transparent" BorderThickness="1">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
@@ -162,6 +187,12 @@
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource RailBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

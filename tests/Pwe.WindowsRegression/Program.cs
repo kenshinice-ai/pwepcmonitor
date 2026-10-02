@@ -1,6 +1,12 @@
 using System.Reflection;
+using System.IO;
 using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using Pwe.PcMonitor.Controls;
 using Pwe.PcMonitor;
 using Pwe.PcMonitor.Models;
 using Pwe.PcMonitor.Services;
@@ -42,6 +48,52 @@ internal static class Program
         Check(!popup.IsOpen, "Hidden widget cannot open popup");
         widget.HideWidget();
         Check(!popup.IsOpen, "Hide resets popup");
+
+        ThemeManager.StartFollowingSystem();
+        ThemeManager.StartFollowingSystem();
+        ThemeManager.StopFollowingSystem();
+        Check(true, "System appearance listener starts and stops safely");
+        var palette = typeof(ThemeManager).GetMethod("ApplyPalette", BindingFlags.NonPublic | BindingFlags.Static)!;
+        palette.Invoke(null, [true, false, false]);
+        Check(((SolidColorBrush)app.Resources["WidgetSurfaceBrush"]).Color.A == 255, "Transparency disabled means opaque widget");
+        palette.Invoke(null, [true, true, true]);
+        Check(((SolidColorBrush)app.Resources["TextBrush"]).Color == SystemColors.WindowTextColor, "High contrast uses system text");
+        Check(((SolidColorBrush)app.Resources["WidgetSurfaceBrush"]).Color == SystemColors.WindowColor, "High contrast uses opaque system surface");
+        palette.Invoke(null, [true, false, true]);
+        Check(((SolidColorBrush)app.Resources["WidgetSurfaceBrush"]).Color.A < 255, "Transparency returns when enabled");
+
+        var animated = new Border { Opacity = 0.35 };
+        var fade = new ReversibleFade(animated);
+        var obsoleteCompletion = false;
+        fade.To(false, true, () => obsoleteCompletion = true);
+        Check(Math.Abs(animated.Opacity - 0.35) < 0.02, "Fade starts from displayed value");
+        fade.To(true, false);
+        Pump(app, TimeSpan.FromMilliseconds(250));
+        Check(animated.Opacity == 1 && !obsoleteCompletion, "Reversal invalidates old close callback");
+        fade.To(false, false);
+        Check(animated.Opacity == 0, "Reduced motion settles immediately");
+
+        apply.Invoke(vm, [new SystemSnapshot
+        {
+            Timestamp = DateTimeOffset.Now, MachineName = "PWE DEMO", ProcessorName = "Illustrative Windows PC",
+            CpuUsage = 7, CpuClockMhz = 2310, CpuTemperature = 63, GpuUsage = 1,
+            MemoryTotal = 8_000_000_000, MemoryAvailable = 2_100_000_000,
+            DiskTotal = 256_000_000_000, DiskFree = 65_000_000_000, HasBattery = true, BatteryPercent = 100
+        }]);
+        var compact = (FrameworkElement)widget.FindName("CompactSurface");
+        var detail = (FrameworkElement)widget.FindName("DetailSurface");
+        detail.Opacity = 1;
+        Directory.CreateDirectory("artifacts");
+        Capture(compact, "artifacts/widget-compact-dark.png");
+        var fullWidth = compact.DesiredSize.Width;
+        Capture(detail, "artifacts/widget-detail-dark.png");
+        Check(fullWidth > 240 && fullWidth < 290, "Compact full-metric width stays small");
+        palette.Invoke(null, [false, false, true]);
+        Capture(detail, "artifacts/widget-detail-light.png");
+        apply.Invoke(vm, [new SystemSnapshot { CpuUsage = 7 }]);
+        Capture(compact, "artifacts/widget-compact-sparse.png");
+        Check(compact.DesiredSize.Width < fullWidth - 60, "Unsupported metrics shrink compact width");
+        ThemeManager.Apply(vm.Theme);
         widget.AllowClose();
         widget.Close();
         vm.DisposeAsync().GetAwaiter().GetResult(); // No sampling task was started.
@@ -60,5 +112,27 @@ internal static class Program
             Check(stopped.IsCompletedSuccessfully, "Exit waits for sampling without blocking Dispatcher");
         }
         Console.WriteLine($"{count} Windows regression checks passed.");
+    }
+
+    private static void Pump(App app, TimeSpan duration)
+    {
+        var frame = new DispatcherFrame();
+        var timer = new DispatcherTimer { Interval = duration };
+        timer.Tick += (_, _) => { timer.Stop(); frame.Continue = false; };
+        timer.Start();
+        Dispatcher.PushFrame(frame);
+    }
+
+    private static void Capture(FrameworkElement element, string path)
+    {
+        element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        element.Arrange(new Rect(element.DesiredSize));
+        element.UpdateLayout();
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(element.ActualWidth), (int)Math.Ceiling(element.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(element);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var output = File.Create(path);
+        encoder.Save(output);
     }
 }

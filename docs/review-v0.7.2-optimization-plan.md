@@ -175,3 +175,18 @@ P1：优先进入下一次修复，影响数据可信度。P2：随后处理的�
 ## 7. 本轮交付与限制
 
 本轮产出为审查方案，未修复以上问题。已经运行的验证仅证明当前基线可构建且无差异格式错误；硬件兼容性、退出竞争及 Popup 实际行为仍需按清单验证。建议先完成第一、二阶段再发布，避免只改外观而保留数据语义和窗口状态问题。
+
+## 8. 2026-10-02 监控链路补充核实
+
+以下基于 v0.8.0 的采集实现复核；之前 R01–R09 的执行情况见 [v0.8.0 记录](release-v0.8.0.md)。本节是进一步的优化建议，不表示此前修复失效。v0.8.1 仅升级界面与可访问性，不改下列采集策略。未连接用户 Windows PC，不能确认具体机器的温度精度或 CPU 开销。
+
+| 优先级 | 核实结果与证据 | 推荐最小改进 | 验收方式 |
+| --- | --- | --- | --- |
+| P1 | [SystemSampler.Sample](../src/Pwe.PcMonitor/Services/SystemSampler.cs#L25) 先读基础指标，再同步更新硬件，最后统一写当前时间；[SamplingLoopAsync](../src/Pwe.PcMonitor/ViewModels/MonitorViewModel.cs) 等完成后再延迟 1–5 秒。因此设置的间隔不含采样耗时，驱动阻塞时保留的读数没有即时过期标记 | 先记录各阶段耗时与各来源采样时间，再补过期状态和基于实际耗时的调度；不要以超时后启动第二个硬件采样线程来绕过阻塞 | 可控慢采样器延迟 5 秒；旧数据不被当作新鲜数据；始终最多一个硬件更新在执行 |
+| P1 | [ReadBattery](../src/Pwe.PcMonitor/Services/WindowsMetricsReader.cs#L126) 仅排除 NoSystemBattery 且要求百分比非负，未显式排除 Unknown/大于 1；[官方枚举](https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.batterychargestatus) 的 Unknown=255，不能当作正常充电状态 | 先处理未知状态，再验证有限且在 0–1 的百分比；缺失项隐藏，原因进入诊断 | Unknown、无电池、0%、100%、越界、交流电状态未知分别覆盖 |
+| P2 | [CPU 温度汇总](../src/Pwe.PcMonitor/Services/SystemSampler.cs) 优先 Package/Tctl/Tdie，否则平均候选集合；界面却固定称 CPU avg。候选还按名字匹配 CPU/Core，可能混入板载测点 | 先把标签与来源对应；按 CPU 硬件身份区分核心、封装、板载温度，不将不同测点解释成同一平均值 | 带 package/core/board 的合成输入，交换枚举顺序后来源和标签不变；与同源工具对比而非不同温度定义互比 |
+| P2 | 系统卷容量与物理盘温度/速率已安全分离；因此主界面暂不展示无法映射的物理盘温度，不是驱动读取一定失败 | 增加稳定的系统卷→物理磁盘映射后，只恢复确定匹配的字段；跨盘卷不强行归为一块盘 | 两盘、分区、多磁盘卷、USB 插拔；All Sensors 与卡片归属可追踪 |
+| P2 | [ReadProcesses](../src/Pwe.PcMonitor/Services/WindowsMetricsReader.cs#L144) 每轮全量枚举进程，并按 PID 保留 CPU 基线；CPU 名称注册表读取也每轮执行；[ApplySnapshot](../src/Pwe.PcMonitor/ViewModels/MonitorViewModel.cs) 每轮清空重建集合 | 先量测采样耗时/分配/自身 CPU；再考虑缓存静态名称、进程榜低频刷新、进程基线加入创建时间、仅更新变化集合 | 在约 50/200 个进程的机器分别记录 1 秒和 5 秒模式下 p50/p95 耗时、工作集和自身 CPU；不在未测量时承诺节省比例 |
+| P2 | GPU 已按设备 ID 选有效核心温度并标明多 GPU 聚合；功耗仍汇总名字匹配 Package/Board/Total 的通道，若驱动同时暴露同一设备的总量与重叠通道，存在重复计数风险；当前没有实机重现证据 | 用真实传感器清单确认是否重叠，再定义每设备唯一总功耗来源；保留多设备求和与单设备去重的区别 | 保存去标识传感器样本；总量与子量并存时不能重复累加 |
+
+建议顺序：**新鲜度/采样时序 → 电池未知态 → CPU 标签与来源 → 物理盘映射 → 有测量依据的开销优化**。GPU 厂商接口继续复用现有 LibreHardwareMonitor，不为本轮核实新增 SDK、常驻服务或驱动。

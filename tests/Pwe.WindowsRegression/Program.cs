@@ -151,7 +151,9 @@ internal static class Program
         try
         {
         element.Dispatcher.Invoke(() => { }, DispatcherPriority.DataBind);
+        Pump(Application.Current, TimeSpan.FromMilliseconds(50));
         host.UpdateLayout();
+        Console.WriteLine($"RENDER {path}: host={host.ActualWidth}, element={element.ActualWidth}, desired={element.DesiredSize.Width}");
         var bitmap = new RenderTargetBitmap((int)Math.Ceiling(element.ActualWidth), (int)Math.Ceiling(element.ActualHeight), 96, 96, PixelFormats.Pbgra32);
         bitmap.Render(element);
         var encoder = new PngBitmapEncoder();

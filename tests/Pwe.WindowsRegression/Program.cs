@@ -103,7 +103,7 @@ internal static class Program
         var fullWidth = Capture(compact, "artifacts/widget-compact-dark.png");
         Capture(detail, "artifacts/widget-detail-dark.png");
         Check(fullWidth > 240 && fullWidth < 290, "Compact full-metric width stays small");
-        palette.Invoke(null, [false, false, true]);
+        ThemeManager.Apply(ThemePreference.Light);
         Capture(detail, "artifacts/widget-detail-light.png");
         apply.Invoke(vm, [new SystemSnapshot { CpuUsage = 7 }]);
         var sparseWidth = Capture(compact, "artifacts/widget-compact-sparse.png");

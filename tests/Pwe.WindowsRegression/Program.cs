@@ -22,6 +22,8 @@ internal static class Program
         var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         // Reuse the production resources without starting the production App.
         var source = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "AppResources.xaml"));
+        foreach (var element in source.Descendants().Where(element => element.Name.NamespaceName == "clr-namespace:Pwe.PcMonitor.Converters"))
+            element.Name = XName.Get(element.Name.LocalName, "clr-namespace:Pwe.PcMonitor.Converters;assembly=PwePcMonitor");
         XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
         var resources = new XElement(presentation + "ResourceDictionary",
             new XAttribute(XNamespace.Xmlns + "x", "http://schemas.microsoft.com/winfx/2006/xaml"),

@@ -14,18 +14,22 @@ public sealed class ReversibleFade(FrameworkElement surface)
         var current = surface.Opacity;
         var target = visible ? 1d : 0d;
         surface.BeginAnimation(UIElement.OpacityProperty, null);
-        surface.Opacity = target;
         if (!animate || Math.Abs(current - target) < 0.001)
         {
+            surface.Opacity = target;
             completed?.Invoke();
             return;
         }
+
+        // WPF activates the new clock on its next tick; retain the displayed
+        // value until then rather than briefly exposing the destination.
+        surface.Opacity = current;
 
         var transition = new DoubleAnimation(current, target,
             TimeSpan.FromMilliseconds(140 * Math.Abs(current - target)))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut },
-            FillBehavior = FillBehavior.Stop
+            FillBehavior = FillBehavior.HoldEnd
         };
         transition.Completed += (_, _) =>
         {

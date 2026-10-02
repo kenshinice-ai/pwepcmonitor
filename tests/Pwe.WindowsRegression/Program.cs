@@ -100,15 +100,14 @@ internal static class Program
         detail.DataContext = vm;
         detail.Opacity = 1;
         Directory.CreateDirectory("artifacts");
-        Capture(compact, "artifacts/widget-compact-dark.png");
-        var fullWidth = compact.DesiredSize.Width;
+        var fullWidth = Capture(compact, "artifacts/widget-compact-dark.png");
         Capture(detail, "artifacts/widget-detail-dark.png");
         Check(fullWidth > 240 && fullWidth < 290, "Compact full-metric width stays small");
         palette.Invoke(null, [false, false, true]);
         Capture(detail, "artifacts/widget-detail-light.png");
         apply.Invoke(vm, [new SystemSnapshot { CpuUsage = 7 }]);
-        Capture(compact, "artifacts/widget-compact-sparse.png");
-        Check(compact.DesiredSize.Width < fullWidth - 60, "Unsupported metrics shrink compact width");
+        var sparseWidth = Capture(compact, "artifacts/widget-compact-sparse.png");
+        Check(sparseWidth < fullWidth - 60, $"Unsupported metrics shrink compact width ({fullWidth} to {sparseWidth})");
         ThemeManager.Apply(vm.Theme);
         widget.AllowClose();
         widget.Close();
@@ -139,19 +138,33 @@ internal static class Program
         Dispatcher.PushFrame(frame);
     }
 
-    private static void Capture(FrameworkElement element, string path)
+    private static double Capture(FrameworkElement element, string path)
     {
+        // A presentation source is required for WPF's visibility/layout coercion.
+        // Give each capture an auto-sized host instead of reusing a hidden window.
+        var host = new Window
+        {
+            Content = element, SizeToContent = SizeToContent.WidthAndHeight,
+            WindowStyle = WindowStyle.None, ShowInTaskbar = false, ShowActivated = false
+        };
+        host.Show();
+        try
+        {
         element.Dispatcher.Invoke(() => { }, DispatcherPriority.DataBind);
-        element.InvalidateMeasure();
-        element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        element.Arrange(new Rect(element.DesiredSize));
-        element.UpdateLayout();
+        host.UpdateLayout();
         var bitmap = new RenderTargetBitmap((int)Math.Ceiling(element.ActualWidth), (int)Math.Ceiling(element.ActualHeight), 96, 96, PixelFormats.Pbgra32);
         bitmap.Render(element);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var output = File.Create(path);
         encoder.Save(output);
+        return element.ActualWidth;
+        }
+        finally
+        {
+            host.Content = null;
+            host.Close();
+        }
     }
 
 }

@@ -145,7 +145,8 @@ internal static class Program
         var host = new Window
         {
             Content = element, SizeToContent = SizeToContent.WidthAndHeight,
-            WindowStyle = WindowStyle.None, ShowInTaskbar = false, ShowActivated = false
+            WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize,
+            ShowInTaskbar = false, ShowActivated = false
         };
         host.Show();
         try
@@ -154,6 +155,7 @@ internal static class Program
         Pump(Application.Current, TimeSpan.FromMilliseconds(50));
         host.UpdateLayout();
         Console.WriteLine($"RENDER {path}: host={host.ActualWidth}, element={element.ActualWidth}, desired={element.DesiredSize.Width}");
+        LogLayout(element);
         var bitmap = new RenderTargetBitmap((int)Math.Ceiling(element.ActualWidth), (int)Math.Ceiling(element.ActualHeight), 96, 96, PixelFormats.Pbgra32);
         bitmap.Render(element);
         var encoder = new PngBitmapEncoder();
@@ -167,6 +169,15 @@ internal static class Program
             host.Content = null;
             host.Close();
         }
+    }
+
+    private static void LogLayout(DependencyObject node, int depth = 0)
+    {
+        if (node is FrameworkElement e && depth < 4)
+            Console.WriteLine($"LAYOUT {depth} {e.GetType().Name} {e.Visibility}: actual={e.ActualWidth}, desired={e.DesiredSize.Width}, width={e.Width}, min={e.MinWidth}");
+        if (depth >= 3) return;
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
+            LogLayout(VisualTreeHelper.GetChild(node, i), depth + 1);
     }
 
 }

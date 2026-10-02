@@ -17,7 +17,7 @@ internal static class Program
     [STAThread]
     private static void Main()
     {
-        var app = new App();
+        var app = new RenderTestApp();
         app.InitializeComponent();
         var vm = new MonitorViewModel(new AppSettingsService(), false);
         var apply = typeof(MonitorViewModel).GetMethod("ApplySnapshot", BindingFlags.NonPublic | BindingFlags.Instance)!;
@@ -82,6 +82,11 @@ internal static class Program
         }]);
         var compact = (FrameworkElement)widget.FindName("CompactSurface");
         var detail = (FrameworkElement)widget.FindName("DetailSurface");
+        // Render controls without a hidden Window imposing its previous layout.
+        ((Panel)compact.Parent).Children.Remove(compact);
+        popup.Child = null;
+        compact.DataContext = vm;
+        detail.DataContext = vm;
         detail.Opacity = 1;
         Directory.CreateDirectory("artifacts");
         Capture(compact, "artifacts/widget-compact-dark.png");
@@ -125,6 +130,8 @@ internal static class Program
 
     private static void Capture(FrameworkElement element, string path)
     {
+        element.Dispatcher.Invoke(() => { }, DispatcherPriority.DataBind);
+        element.InvalidateMeasure();
         element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         element.Arrange(new Rect(element.DesiredSize));
         element.UpdateLayout();
@@ -134,5 +141,11 @@ internal static class Program
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var output = File.Create(path);
         encoder.Save(output);
+    }
+
+    private sealed class RenderTestApp : App
+    {
+        // Pumping WPF must not start tray icons, hardware sampling or real windows.
+        protected override void OnStartup(StartupEventArgs e) { }
     }
 }

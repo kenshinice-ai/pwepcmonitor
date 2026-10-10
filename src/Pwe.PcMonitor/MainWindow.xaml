@@ -352,7 +352,9 @@
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Text="A PARADISE PRODUCTION · 天域文创出品" FontFamily="{StaticResource BrandFont}"
+                    <!-- The house signature, as the Mac apps print it. "A PARADISE PRODUCTION · 天域文创出品"
+                         was retired when the house became PWE · 天域; Paradise Production is the film line. -->
+                    <TextBlock Text="PWE · 天域出品" FontFamily="{StaticResource BrandFont}"
                                Foreground="{DynamicResource MutedBrush}" FontSize="11"
                                HorizontalAlignment="Center" Margin="0,8,0,4" />
                 </StackPanel>

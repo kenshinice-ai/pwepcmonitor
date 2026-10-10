@@ -30,6 +30,8 @@ Do not rewrite old docs in bulk. Tidy a section by these rules when you change i
 ## Glossary
 | Use | Meaning (one only) | Not |
 |---|---|---|
+| PWE PC MONITOR | This app: the Windows hardware monitor in this repo. | PC Monitor, PWE Monitor for Windows |
+| PWE Monitor | The Mac app, in `kenshinice-ai/pwemacmonitor`. Named PWE MAC MONITOR until its 1.4.0 (2026-09-12). | PWE MAC MONITOR, except in addresses that kept the old spelling: the repo, the cask and the `.dmg` name |
 | floating widget | The optional always-on-top window, toggled by **Show Floating Widget**. | always-on widget |
 | detail panel | The expanded part of the floating widget, opened by hover or F2. | hover details, details |
 | All Sensors | The full sensor list section, shown by **Show All Sensors**. | full sensor list |

@@ -8,7 +8,7 @@ Current release version: **0.8.1**
 
 </div>
 
-PWE PC MONITOR is the Windows companion to PWE MAC MONITOR. It keeps the wing mark, navy/amber palette, typography, calm/warm/hot status language, compact dashboard and 1–5 second sampling rhythm while using Windows-native telemetry and LibreHardwareMonitor.
+PWE PC MONITOR is the Windows companion to [PWE Monitor](https://github.com/kenshinice-ai/pwemacmonitor), the Mac app. It keeps the wing mark, navy/amber palette, typography, calm/warm/hot status language, compact dashboard and 1–5 second sampling rhythm while using Windows-native telemetry and LibreHardwareMonitor.
 
 ## Current features
 

@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 PWE Group Pty Ltd (Paradise Production / 天域文创)
+Copyright (c) 2026 PWE Group Pty Ltd
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,9 +27,10 @@ TRADEMARKS AND BRAND ASSETS — NOT COVERED BY THE LICENSE ABOVE
 The MIT licence above applies to the source code. It does not grant any right
 to use the names, logos, or brand assets of PWE Group Pty Ltd, including:
 
-- the names “Paradise Production”, “天域文创”, “PWE”, “PWE Studio”,
-  “PWE PC MONITOR” and “PWE MAC MONITOR”;
-- the Paradise wing mark, including the application and notification-area icons;
+- the names “PWE”, “天域”, “PWE Studio”, “Paradise Production”, “天域影像”,
+  the former name “天域文创”, “PWE PC MONITOR”, “PWE Monitor” and
+  “PWE MAC MONITOR”;
+- the PWE wing mark (the five-feather wing), including the application and notification-area icons;
 - the slogan “Create trust through clarity.” / “用清晰创造信任。”
 
 A redistributed build must replace the brand name and brand assets unless it

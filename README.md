@@ -2,7 +2,7 @@
 
 # PWE PC MONITOR
 
-**A calm Windows hardware monitor from Paradise Production.**
+**A calm Windows hardware monitor from PWE.**
 
 Current release version: **0.8.1**
 
@@ -147,4 +147,4 @@ The [monitoring follow-up audit](docs/review-v0.7.2-optimization-plan.md#8-2026-
 
 Source code is MIT licensed. LibreHardwareMonitor is MPL-2.0. Bundled fonts use the SIL Open Font License 1.1. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
-PWE names, the Paradise wing mark and related brand assets are not granted under the MIT source-code licence. See [LICENSE](LICENSE).
+PWE names, the PWE wing mark and related brand assets are not granted under the MIT source-code licence. See [LICENSE](LICENSE).

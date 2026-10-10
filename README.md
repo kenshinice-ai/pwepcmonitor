@@ -4,7 +4,7 @@
 
 **A calm Windows hardware monitor from PWE.**
 
-Current release version: **0.8.1**
+Current release version: **0.8.2**
 
 </div>
 
@@ -38,7 +38,9 @@ PWE PC MONITOR is the Windows companion to [PWE Monitor](https://github.com/kens
 
 In the focused floating widget, **F2** opens details, **Escape** closes details, and **Ctrl+Shift+M** requests memory optimization. These are window-level, not global shortcuts. Details retain keyboard focus and memory-operation completion feedback stays available for at least four seconds unless explicitly dismissed. Disabling the widget closes its details and background memory actions cannot reopen it.
 
-Version 0.8.1 refines the existing PWE interface using the apple-design principles of immediate feedback, reversible disclosure and readable materials: the compact bar fits the available metrics, hover details fade in and out from their current opacity, buttons expose pressed/keyboard-focus states, and memory results wrap instead of being squeezed beside the action. Windows theme changes apply live in System mode; transparency-off uses opaque surfaces, high contrast uses system colours, and animation-off settles immediately. No new monitoring features or production dependencies are introduced.
+Version 0.8.2 changes two pieces of wording and nothing else: the **Optimize memory** confirmation now leads with the warning, and the dashboard footer carries the current house signature, PWE · 天域出品. Sampling, telemetry and memory behaviour are as in 0.8.1.
+
+Version 0.8.1 refined the existing PWE interface using the apple-design principles of immediate feedback, reversible disclosure and readable materials: the compact bar fits the available metrics, hover details fade in and out from their current opacity, buttons expose pressed/keyboard-focus states, and memory results wrap instead of being squeezed beside the action. Windows theme changes apply live in System mode; transparency-off uses opaque surfaces, high contrast uses system colours, and animation-off settles immediately. No new monitoring features or production dependencies are introduced.
 
 ## Interface preview
 

@@ -122,7 +122,8 @@ jobs:
           PWE PC MONITOR $env:GITHUB_REF_NAME
 
           Self-contained Windows x64 build. Extract the zip and run PwePcMonitor.exe.
-          Interface refinement: reversible hover details, compact width that follows readable metrics, clearer metric tiles, readable memory feedback, and immediate pressed/keyboard-focus states.
+          0.8.2 changes wording only. The Optimize memory confirmation leads with the warning: do not run it while a background app is doing time-sensitive work. The dashboard footer carries the current house signature, PWE · 天域出品. Sampling, telemetry and memory behaviour are unchanged from 0.8.1.
+          From 0.8.1: reversible hover details, compact width that follows readable metrics, clearer metric tiles, readable memory feedback, and immediate pressed/keyboard-focus states.
           Windows transparency, animation and high-contrast preferences are respected; system theme changes apply without a restart. Existing telemetry and manual memory semantics are unchanged.
           Storage capacity now explicitly describes the system volume; unmatched physical-disk temperatures and rates remain in sensor diagnostics instead of being mixed into that card.
           No separate .NET installation is required. Hardware monitoring is read-only; optional manual memory optimization trims eligible session-process working sets. There is no fan control.

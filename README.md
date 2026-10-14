@@ -145,6 +145,14 @@ GitHub Actions builds and packages Windows x64, runs both suites, and launches t
 
 The [monitoring follow-up audit](docs/review-v0.7.2-optimization-plan.md#8-2026-10-02-监控链路补充核实) distinguishes verified sampling/semantic gaps from performance hypotheses. The 0.8.1 interface update does not silently change those telemetry policies.
 
+## Support
+
+PWE PC MONITOR is free and will stay that way: nothing is locked, and the app never asks. If it has
+earned a place on your desktop, [pwestudio.site/support](https://pwestudio.site/support) says how to
+give something back — one page for every free PWE tool. The most useful thing is often a report from
+hardware we do not have: open an issue with what **Settings → Sensor diagnostics** shows. The same
+links are at the bottom of the Settings menu.
+
 ## Licences and brand
 
 Source code is MIT licensed. LibreHardwareMonitor is MPL-2.0. Bundled fonts use the SIL Open Font License 1.1. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

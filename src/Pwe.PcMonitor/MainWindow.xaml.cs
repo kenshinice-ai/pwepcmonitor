@@ -96,6 +96,10 @@ public partial class MainWindow : Window
         menu.Items.Add(CreateActionItem("Restart with sensor access", ((App)Application.Current).RestartAsAdministrator));
         menu.Items.Add(CreateActionItem("Open sensor support guide", ((App)Application.Current).OpenSensorGuide));
         menu.Items.Add(new Separator());
+        // The app's "About": the only place it mentions support. See ProjectLinks.
+        menu.Items.Add(CreateActionItem("Source code on GitHub", () => ProjectLinks.Open(ProjectLinks.Repository)));
+        menu.Items.Add(CreateActionItem("Support PWE…", () => ProjectLinks.Open(ProjectLinks.Support)));
+        menu.Items.Add(new Separator());
         var hide = new System.Windows.Controls.MenuItem { Header = "Hide Dashboard" };
         hide.Click += (_, _) => Hide();
         menu.Items.Add(hide);

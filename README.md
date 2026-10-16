@@ -65,7 +65,7 @@ Use the repository's [Releases](https://github.com/kenshinice-ai/pwepcmonitor/re
 - `pwe-pc-monitor-win-x64-<version>.zip`, a self-contained Windows x64 build;
 - `pwe-pc-monitor-win-x64-<version>.sha256`, the SHA-256 checksum.
 
-The `Actions` artifact is kept as a short-lived CI diagnostic (30 days). Releases are the stable public download path.
+The `Actions` artifact is kept as a short-lived CI diagnostic (7 days). Releases are the stable public download path.
 
 ## Run a packaged build
 

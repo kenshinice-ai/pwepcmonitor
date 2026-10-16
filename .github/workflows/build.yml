@@ -90,7 +90,9 @@ jobs:
             artifacts/smoke-*.log
             artifacts/widget-*.png
           if-no-files-found: warn
-          retention-days: 30
+          # A week is enough to fetch a build from a run. Releases keep the downloads; the account's
+          # artifact storage filled up at 90 days (2026-10-16) and blocked the upload step.
+          retention-days: 7
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
